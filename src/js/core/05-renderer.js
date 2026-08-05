@@ -133,14 +133,33 @@ function renderProblem(src) {
         html += '</div>';
     }
     if (f.solution) {
-        html += '<button class="problem-solution-btn" data-group="' + escapeHtml(f.solution.trim()) + '">View code</button>';
+        html += '<button class="problem-solution-btn" data-path="' + escapeHtml('code/' + f.solution.trim()) + '">View code</button>';
     }
     html += '</div>';
     return html;
 }
 
-function renderCodeBlock(lang, code) {
-    var label = (LANG_LABELS[lang] || lang || 'code').toUpperCase();
+function renderCodeCard(src) {
+    var meta = {};
+    src.split('\n').forEach(function (line) {
+        var m = line.match(/^([a-z_]+)\s*:\s?(.*)$/i);
+        if (m) meta[m[1].toLowerCase()] = m[2].trim();
+    });
+    var group = meta.group || '';
+    var label = meta.label || group;
+    var html = '<div class="code-card" data-path="' + escapeHtml('code/' + group) + '">';
+    html += '<div class="code-card-body">';
+    html += '<svg class="code-card-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>';
+    html += '<div>';
+    html += '<div class="code-card-title">' + escapeHtml(label) + '</div>';
+    html += '<div class="code-card-sub">Full solution — 5 languages, line-by-line explanation</div>';
+    html += '</div></div>';
+    html += '<span class="code-card-arrow">View code &rarr;</span>';
+    html += '</div>';
+    return html;
+}
+
+function renderCodeBlock(lang, code) {    var label = (LANG_LABELS[lang] || lang || 'code').toUpperCase();
     var highlighted = highlight(code, lang);
     return '<div class="code-block" data-lang="' + lang + '">' +
         '<div class="code-header">' +
@@ -245,6 +264,7 @@ function renderMarkdown(md) {
             out.push(lang === 'explain' ? renderExplain(buf.join('\n'))
                 : lang === 'problem' ? renderProblem(buf.join('\n'))
                 : lang === 'io' ? renderIo(buf.join('\n'))
+                : lang === 'code' ? renderCodeCard(buf.join('\n'))
                 : renderCodeBlock(lang, buf.join('\n')));
             continue;
         }

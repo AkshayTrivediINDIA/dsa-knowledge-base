@@ -1198,6 +1198,62 @@ body {
     word-wrap: break-word;
 }
 
+/* Code Card (routes to a code/<group> page) */
+.code-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.code-card:hover {
+    border-color: var(--accent-primary);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.code-card:active {
+    transform: scale(0.995);
+}
+
+.code-card-body {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.code-card-icon {
+    color: var(--accent-primary);
+    flex-shrink: 0;
+}
+
+.code-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.code-card-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.code-card-arrow {
+    margin-left: auto;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent-primary);
+    flex-shrink: 0;
+}
+
 /* Tabs */
 .tabs {
     display: flex;

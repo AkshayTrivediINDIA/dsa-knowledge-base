@@ -275,5 +275,4 @@ function initLangTabsAll() {
     initLangPrefModal();
     initLangTabs(document);
     initBlockSwitchers(document);
-    initProblemSolutionButtons(document);
 }

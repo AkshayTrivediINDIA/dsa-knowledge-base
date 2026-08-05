@@ -101,6 +101,16 @@ function fallbackCopy(text) {
 
 function bindCodeBlocks() {
     $('#article').addEventListener('click', function (e) {
+        var sol = e.target.closest('.problem-solution-btn[data-path]');
+        if (sol) {
+            navigate(sol.getAttribute('data-path'));
+            return;
+        }
+        var ccard = e.target.closest('.code-card[data-path]');
+        if (ccard) {
+            navigate(ccard.getAttribute('data-path'));
+            return;
+        }
         var card = e.target.closest('.card[data-path]');
         if (card) {
             navigate(card.getAttribute('data-path'));

@@ -12,15 +12,15 @@
 ## ⏭️ RESUME HERE — Start Point for Next Session
 
 ### Current Snapshot (all green, verified 2026-08-05)
-- **34-page hybrid MPA/SPA** (vanilla HTML/CSS/JS). Works as MPA over `http://` (serve `dist/`) and as a **single-file SPA** (`dist/index.standalone.html`) over `http://`, `file://` and Android `content://` — all navigation is hash-based (`#/path`), so **no web server or sibling files are required to browse the whole site**.
+- **83-page hybrid MPA/SPA** (vanilla HTML/CSS/JS). Works as MPA over `http://` (serve `dist/`) and as a **single-file SPA** (`dist/index.standalone.html`) over `http://`, `file://` and Android `content://` — all navigation is hash-based (`#/path`), so **no web server or sibling files are required to browse the whole site**.
+- **Every program group has its own page** (`20-split-codes.js`): the 5 `~~~explain` blocks + `~~~io` of a group are moved at script-load onto a routable `code/<group>` page (49 code pages). Topic/interview/snippet pages keep a **code card** (`~~~code`) that routes to the code page; problem-card **View code** buttons route to `code/<group>` too. Same behaviour in MPA and standalone (shared script).
 - **Content:**
-  - **Research section rebuilt deep** — new `research/index` (Introduction & Methodology: verification pipeline, notation/conventions, primary sources, reading guide) + `research/array` rewritten as a **research-grade monograph** (formal RAM model, history, address arithmetic proof, strides, cache/TLB/prefetch/false-sharing, static vs dynamic + geometric-growth amortized proof, per-language growth factors, operations table, cache-aware programming, 8 edge cases, array-vs-list, real-world uses, language matrix, research directions, verified references).
-  - All **14 array topics** in `13-topics.js` follow the full template (Definition · History & Origin w/ citations · Intuition · Trace table · 5 full programs with per-line `##N##` refs + `~~~io` · Proof · Complexity table · Variants · Edge cases · Common mistakes · Applications · Try-it tip).
-  - All **16 interview cards** in `15-interview.js` converted to full 5-lang solutions + `~~~io` + per-line refs (Stage C interview portion DONE — `twosum` is the pattern).
-  - **Snippets page** (`14-snippets.js`) has **11 groups** (5 langs each + `~~~io`).
-  - **3 learn pages** in `19-learn.js`: `learn/getting-started`, `learn/glossary`, `learn/references` (30 → **34 pages**).
-- Build sizes: `dist/script.js` 658 KB, `dist/index.standalone.html` 719 KB, 48 static HTML pages.
-- `validate.js` reports: **34 pages, ALL CHECKS PASSED** (205 explain blocks, 2738 explained lines).
+  - **Research section rebuilt deep** — new `research/index` (Introduction & Methodology) + `research/array` as a research-grade monograph (formal RAM model, address-arithmetic proof, strides, cache/TLB/false-sharing, amortized-growth proof, per-language factors, language matrix, verified references).
+  - All **14 array topics** in `13-topics.js` follow the full template; every code block now lives on its own `code/<group>` page.
+  - All **16 interview cards**, **11 snippet groups**, **LeetCode groups** — same split into code pages.
+  - **3 learn pages** in `19-learn.js`.
+- Build sizes: `dist/script.js` 719 KB, `dist/index.standalone.html` 782 KB, 98 static HTML pages.
+- `validate.js` reports: **83 pages, ALL CHECKS PASSED** (205 explain blocks, 2738 explained lines, 49 pages with program groups).
 
 ### Serving over HTTP
 ```
@@ -35,14 +35,15 @@ MPA pages (`index.html` + sibling `*.html`) need the whole `dist/` folder served
 2. **Hash-based SPA routing was missing** — `navigate()` did full `location.href` MPA jumps with no hash support, so a single file (or any page served standalone) could not move off its initial route. Restored `parseHashPath()` + `bindHashRouter()` in `07-router.js` and wired into `init()` (`renderPath(parseHashPath() || parsePath())`).
 3. **Learn pages + sidebar** — `19-learn.js` filled (3 pages); `build.js` gained a `LEARN_PAGES` sidebar section; `validate.js` `EXPECTED_PAGES` 30 → 33.
 4. **Research section deep expansion** — new `research/index` introduction page + `research/array` rewritten as a wiki-grade monograph (formal model, proofs, hardware reality, amortized analysis, language matrix, references). Sidebar Research section now links Introduction + Array Notes; `EXPECTED_PAGES` 33 → 34.
-5. **Stale test suites updated** in `/tmp/opencode/`: page count 30 → 33, home cards `#article .card` (26) → `#article .ds-card` (15, `DS_CARDS`), sidebar `#topics-children` → `#array-children`, coming-soon paths excluded from the DB-key check (they live in `DS_CARDS`).
+5. **Code pages split** — new content module `20-split-codes.js` moves every program group (5 `~~~explain` blocks + `~~~io`) onto its own `code/<group>` page; source pages keep a `~~~code` card; problem-card "View code" now routes (`data-path`) instead of scrolling. Renderer gained `renderCodeCard`; `bindCodeBlocks` routes on code-card/solution-btn clicks; `.code-card` styles added; `EXPECTED_PAGES` 34 → 83 (49 code pages). `test_dom.js`/`test_standalone.js`/`test_mpa.js`/`test_app.js` updated for the new routing (dom/standalone/mpa all green; mpa boots 98 pages).
+6. **Stale test suites updated** in `/tmp/opencode/`: page count 30 → 33, home cards `#article .card` (26) → `#article .ds-card` (15, `DS_CARDS`), sidebar `#topics-children` → `#array-children`, coming-soon paths excluded from the DB-key check (they live in `DS_CARDS`).
 
 ### Quick sanity commands (run in `/sdcard/Projects/dsa-knowledge-base/`)
 ```
 node build.js && node validate.js
 node /tmp/opencode/test_app.js && node /tmp/opencode/test_dom.js && node /tmp/opencode/test_android.js && node /tmp/opencode/test_standalone.js && node /tmp/opencode/test_mpa.js
 ```
-`validate.js` must report: 34 pages, ALL CHECKS PASSED. All 5 suites must pass (last run: app ✓, dom ✓, android ✓, standalone ✓, mpa ✓).
+`validate.js` must report: 83 pages, ALL CHECKS PASSED. All 5 suites must pass (last run: app ✓, dom ✓, android ✓, standalone ✓, mpa ✓ — mpa boots 98 pages).
 
 ### Ground rules to keep (they hold up the validator)
 - Every program group covers **all 5 languages** (C/C++/Java/Python/Dart) as **full standalone programs** (include/import + entry point + print/return).
