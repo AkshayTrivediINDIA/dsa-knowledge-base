@@ -1,0 +1,66 @@
+/* ============================================================
+   DSA Knowledge Base - script.js (module: content:18-patterns)
+   Content Database + App Logic | Vanilla JS | No dependencies
+   ============================================================ */
+
+/* Pages: patterns/overview */
+
+DB["patterns/overview"] = {  
+        title: 'Array Patterns Overview',
+        crumbs: ['Home', 'Data Structures', 'Array', 'Patterns', 'Overview'],
+        tags: ['array', 'patterns', 'cheat-sheet', 'overview'],
+        content: [
+            '# Array Patterns Overview',
+            '',
+            'The complete cheat sheet. When you read an array problem, run down this table and name the pattern before coding.',
+            '',
+            '| Pattern | Detector phrase | Time / Space |',
+            '|---|---|---|',
+            '| Prefix Sum | "sum of subarrays", "range sum" | O(n) / O(n) |',
+            '| Difference Array | "many range updates", "final state" | O(n + q) / O(n) |',
+            '| Sliding Window | "contiguous subarray", "longest/shortest window" | O(n) / O(1) |',
+            '| Two Pointers | "sorted array", "pair sum", "in-place" | O(n) / O(1) |',
+            '| Kadane | "maximum subarray sum" | O(n) / O(1) |',
+            '| Hashing | "appears before", "complement", "count" | O(n) / O(n) |',
+            '| Binary Search | "sorted", "monotone", "minimize max" | O(log n) |',
+            '| Binary Search on Answer | "minimum possible maximum" | O(n log n) |',
+            '| Dutch National Flag | "three values in one pass" | O(n) / O(1) |',
+            '| Merge Intervals | "overlapping intervals" | O(n log n) |',
+            '| Matrix Transforms | "rotate 90°", "spiral" | O(mn) / O(1) |',
+            '',
+            '## Choosing the Pattern',
+            '',
+            '**Read the output you need:',
+            '',
+            '- **A single number from subarrays** → prefix sum, Kadane, sliding window.',
+            '- **Indices of a pair/triple** → hashmap, two pointers.',
+            '- **Grouping / intervals** → sort + sweep, merge intervals.',
+            '- **Optimization with monotone feel** → binary search on answer.',
+            '- **In-place rearrangement** → two pointers, DNF, rotation.',
+            '',
+            '## The "Hint Words"',
+            '',
+            '| Word in problem | Pattern hint |',
+            '|---|---|',
+            '| contiguous / window | sliding window |',
+            '| sorted / non-decreasing | binary search, two pointers |',
+            '| "at least k", "maximum of minimum" | binary search on answer |',
+            '| distinct / frequency | hashing |',
+            '| overlapping / meetings | intervals |',
+            '| largest sum subarray | Kadane |',
+            '| rotate | reversal-rotation |',
+            '',
+            '## Complexity Quick Reference',
+            '',
+            '| Goal | Best achievable |',
+            '|---|---|',
+            '| Single pass scan | O(n) / O(1) |',
+            '| Search sorted | O(log n) |',
+            '| Sort | O(n log n) |',
+            '| Pair lookup | O(n) / O(n) |',
+            '| Optimize answer | O(n log n) |',
+            '',
+            '> [!success] Final tip',
+            '> State the pattern, its complexity, and its space trade in your first sentence. Interviewers grade the *recognition*, not the code.'
+        ].join('\n')
+  };

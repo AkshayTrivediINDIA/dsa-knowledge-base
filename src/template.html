@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>{{TITLE}}</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
+</head>
+<body data-path="{{BODY_PATH}}">
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+                <div class="logo">
+                    <span class="logo-icon">DSA</span>
+                    <span class="logo-text">Knowledge Base</span>
+                </div>
+            </div>
+            <div class="header-center">
+                <div class="search-box">
+                    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="searchInput" placeholder="Search topics, problems, patterns..." autocomplete="off">
+                    <kbd class="search-shortcut">/</kbd>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+                    <svg class="icon-sun" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="icon-moon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+                <button class="bookmark-toggle" id="bookmarkToggle" aria-label="Bookmarks">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <!-- Sidebar -->
+            <aside class="sidebar" id="sidebar">
+                <nav class="sidebar-nav">
+                    {{SIDEBAR}}
+                </nav>
+            </aside>
+
+            <!-- Content Area -->
+            <main class="content" id="content">
+                <div class="content-header">
+                    <div class="breadcrumb" id="breadcrumb">
+                        <span class="breadcrumb-item">Home</span>
+                    </div>
+                    <div class="content-actions">
+                        <button class="btn-icon" id="copyPathBtn" title="Copy page path">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                            </svg>
+                        </button>
+                        <button class="btn-icon" id="bookmarkBtn" title="Bookmark this page">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="scroll-progress" id="scrollProgress"></div>
+                <article class="article" id="article">
+                    <noscript>
+                        <p>JavaScript is required to view the DSA Knowledge Base. Please enable JavaScript or reopen this file in Chrome.</p>
+                    </noscript>
+                </article>
+                <div class="article-footer">
+                    <button class="btn btn-secondary" id="backToTop">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="19" x2="12" y2="5"></line>
+                            <polyline points="5 12 12 5 19 12"></polyline>
+                        </svg>
+                        Back to Top
+                    </button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Search Modal -->
+    <div class="search-modal" id="searchModal">
+        <div class="search-modal-backdrop" id="searchBackdrop"></div>
+        <div class="search-modal-content">
+            <div class="search-modal-header">
+                <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="modalSearchInput" placeholder="Search everything..." autocomplete="off">
+                <kbd class="search-shortcut">ESC</kbd>
+            </div>
+            <div class="search-results" id="searchResults">
+                <div class="search-empty">
+                    <p>Type to search across all topics, problems, and patterns.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bookmarks Panel -->
+    <div class="bookmarks-panel" id="bookmarksPanel">
+        <div class="bookmarks-header">
+            <h3>Bookmarks</h3>
+            <button class="btn-icon" id="closeBookmarks">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="bookmarks-list" id="bookmarksList">
+            <p class="bookmarks-empty">No bookmarks yet. Press Ctrl+B on any page to bookmark it.</p>
+        </div>
+    </div>
+
+    <!-- Preferred Language Modal -->
+    <div class="lang-pref-modal" id="langPrefModal">
+        <div class="lang-pref-backdrop" id="langPrefBackdrop"></div>
+        <div class="lang-pref-content">
+            <h3>Which language do you prefer?</h3>
+            <p>Pick the language you'll use most. Code tabs across the app will default to it, and every code block has a switcher so you can change anytime.</p>
+            <div class="lang-pref-options">
+                <button class="lang-pref-option" data-lang="c">C</button>
+                <button class="lang-pref-option" data-lang="cpp">C++</button>
+                <button class="lang-pref-option" data-lang="java">Java</button>
+                <button class="lang-pref-option" data-lang="python">Python</button>
+                <button class="lang-pref-option" data-lang="dart">Dart</button>
+            </div>
+            <button class="lang-pref-skip" id="langPrefSkip">Maybe later</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
