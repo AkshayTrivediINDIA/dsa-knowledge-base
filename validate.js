@@ -18,7 +18,7 @@ const app = require(PROJECT);
 
 const { DB, refUrl } = app;
 
-const EXPECTED_PAGES = 33;
+const EXPECTED_PAGES = 34;
 const STRUCT_LANG = { c: 'c', cpp: 'cpp', java: 'java', python: 'python', dart: 'dart' };
 
 let errors = 0;

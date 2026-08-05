@@ -63,7 +63,8 @@ const CHEVRON_ICON = '<svg class="chevron" width="16" height="16" viewBox="0 0 2
 const ARRAY_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="8" height="8" rx="1.5"/><rect x="14" y="2" width="8" height="8" rx="1.5"/><rect x="2" y="14" width="8" height="8" rx="1.5"/><rect x="14" y="14" width="8" height="8" rx="1.5"/></svg>';
 
 const ARRAY_NAV = {
-    'research/array': 'Research',
+    'research/index': 'Introduction',
+    'research/array': 'Array Notes',
     'topics/traversal': 'Traversal',
     'topics/prefix-sum': 'Prefix Sum',
     'topics/difference-array': 'Difference Array',
@@ -95,7 +96,7 @@ const ARRAY_NAV = {
 };
 
 const ARRAY_SECTIONS = [
-    { title: 'Research', paths: ['research/array'] },
+    { title: 'Research', paths: ['research/index', 'research/array'] },
     { title: 'DSA & DAA Topics', paths: [
         'topics/traversal', 'topics/prefix-sum', 'topics/difference-array',
         'topics/sliding-window', 'topics/two-pointers', 'topics/kadane',
