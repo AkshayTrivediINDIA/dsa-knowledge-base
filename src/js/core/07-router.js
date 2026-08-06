@@ -64,6 +64,7 @@ function setProgress(pct) {
 function renderHome() {
     currentPath = 'home';
     document.title = 'DSA Knowledge Base — Dashboard';
+    safe(vizTeardownAll);
 
     var activeCount = 0;
     var totalTopics = 0;
@@ -154,6 +155,7 @@ function renderComingSoon(dsId) {
 
     currentPath = 'coming-soon/' + dsId;
     document.title = card.title + ' — Coming Soon — DSA Knowledge Base';
+    safe(vizTeardownAll);
 
     var topicsList = '';
     card.expectedTopics.forEach(function (t) {
@@ -201,9 +203,11 @@ function renderPage(path) {
     if (!page) { renderHome(); return; }
     currentPath = path;
     document.title = page.title + ' — DSA Knowledge Base';
+    safe(vizTeardownAll);
     $('#article').innerHTML = renderMarkdown(page.content);
     safe(initLangTabsAll);
     safe(initScrollReveal);
+    safe(vizInitForPage);
     renderBreadcrumb(page.crumbs || ['Home', page.title]);
     updateNavActive(path);
     expandToCurrent();

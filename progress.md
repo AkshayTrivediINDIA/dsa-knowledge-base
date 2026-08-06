@@ -11,16 +11,22 @@
 
 ## ⏭️ RESUME HERE — Start Point for Next Session
 
-### Current Snapshot (all green, verified 2026-08-05)
-- **83-page hybrid MPA/SPA** (vanilla HTML/CSS/JS). Works as MPA over `http://` (serve `dist/`) and as a **single-file SPA** (`dist/index.standalone.html`) over `http://`, `file://` and Android `content://` — all navigation is hash-based (`#/path`), so **no web server or sibling files are required to browse the whole site**.
-- **Every program group has its own page** (`20-split-codes.js`): the 5 `~~~explain` blocks + `~~~io` of a group are moved at script-load onto a routable `code/<group>` page (49 code pages). Topic/interview/snippet pages keep a **code card** (`~~~code`) that routes to the code page; problem-card **View code** buttons route to `code/<group>` too. Same behaviour in MPA and standalone (shared script).
-- **Content:**
-  - **Research section rebuilt deep** — new `research/index` (Introduction & Methodology) + `research/array` as a research-grade monograph (formal RAM model, address-arithmetic proof, strides, cache/TLB/false-sharing, amortized-growth proof, per-language factors, language matrix, verified references).
-  - All **14 array topics** in `13-topics.js` follow the full template; every code block now lives on its own `code/<group>` page.
-  - All **16 interview cards**, **11 snippet groups**, **LeetCode groups** — same split into code pages.
-  - **3 learn pages** in `19-learn.js`.
-- Build sizes: `dist/script.js` 719 KB, `dist/index.standalone.html` 782 KB, 98 static HTML pages.
+### Current Snapshot (all green, verified 2026-08-06)
+- **83-page hybrid MPA/SPA** (vanilla HTML/CSS/JS) **+ interactive visualizations**. Works as MPA over `http://` (serve `dist/`) and as a **single-file SPA** (`dist/index.standalone.html`) over `http://`, `file://` and Android `content://` — all navigation is hash-based (`#/path`), so **no web server or sibling files are required to browse the whole site**.
+- **Every program group has its own page** (`20-split-codes.js`): 49 `code/<group>` pages. Topic/interview/snippet pages keep a **code card** that routes to the code page; problem-card **View code** buttons route too. Same behaviour in MPA and standalone (shared script).
+- **Interactive visualizations (NEW — Phase 4, Stage A, all 14 topics):**
+  - Shared GSAP engine `src/js/core/11-visualizer-engine.js` (`Visualizer` + `VizPlayer` + mounting/teardown wired into `07-router.js`; primitives: array cells, l/r pointers, sliding-window overlay, bars with labels, swap animation, second "sub" row, 2D matrix grid, vars chips, step narration, log; dark/light theming via CSS vars; respects `prefers-reduced-motion`).
+  - **GSAP 3.12.5 vendored offline** at `src/vendor/gsap.min.js` (72 KB) and bundled into `dist/script.js` inside an IIFE that invokes GSAP with a plain-object `this` (jsdom-safe; the UMD `(this||self).window =` header no longer throws in test harnesses) then copies `gsap` onto the real global.
+  - **All 14 topic pages have a runnable visualizer**: traversal, prefix-sum, difference-array, sliding-window, two-pointers, kadane, sorting (bubble/selection/insertion), binary-search, hashing, matrix (rotate), merge-intervals, dutch-national-flag, binary-search-answer, complexity — one config file each under `src/js/viz/topics/`, self-registered into `VIZ_CONFIG` (declared in `core/10-init.js`, exported for tests), each with play/pause/step/scrub/speed, custom input re-simulation, and per-page legend.
+  - Every topic's trace uses the **same example data as its page's Step-by-Step table** (asserted by `test_viz_traces.js`).
+- Build sizes: `dist/script.js` 890 KB, `dist/index.standalone.html` 966 KB, 98 static HTML pages, `dist/style.css` 55 KB.
 - `validate.js` reports: **83 pages, ALL CHECKS PASSED** (205 explain blocks, 2738 explained lines, 49 pages with program groups).
+
+### Test suites (all green, `/tmp/opencode/`)
+- `validate.js` — 83 pages, ALL CHECKS PASSED.
+- `test_app.js` (83 pages), `test_dom.js`, `test_mpa.js` (98 pages boot), `test_standalone.js` (content://), `test_android.js` (hostile file://).
+- **Viz suites**: `test_viz.js` (two-pointers DOM: mount/step/scrub/apply/play), `test_viz_topics.js` (all 14 topic pages mount + step to last frame), `test_viz_traces.js` (every simulation's final result asserted), `test_standalone_viz.js` (standalone mounts a viz via hash nav).
+- **Run command**: `node build.js && node validate.js && node /tmp/opencode/test_app.js && node /tmp/opencode/test_viz_traces.js && node /tmp/opencode/test_viz_topics.js && node /tmp/opencode/test_dom.js && node /tmp/opencode/test_mpa.js && node /tmp/opencode/test_standalone.js && node /tmp/opencode/test_android.js` (test_mpa needs ~2.5 min; test_dom/standalone/android ~1 min each — run them one at a time).
 
 ### Serving over HTTP
 ```
@@ -31,32 +37,69 @@ cd dist && python3 -m http.server 8000     # then open http://localhost:8000/ind
 MPA pages (`index.html` + sibling `*.html`) need the whole `dist/` folder served; `index.standalone.html` is self-contained.
 
 ### This session's fixes (regressions found & fixed)
-1. **`$$` mangling in the standalone rebuild** — `String.prototype.replace(string, string)` interprets `$$`/`$&`/`$1` in the replacement even for string patterns, so the inlined `function $$(sel, root)` collapsed to `function $(sel, root)` and `$` returned a `querySelectorAll` array (broke every page). Fixed with **replacement functions** in `build.js` `buildStandalone()`, plus a **build-time guard** that fails the build if the standalone's inlined script is not byte-identical to `dist/script.js`.
-2. **Hash-based SPA routing was missing** — `navigate()` did full `location.href` MPA jumps with no hash support, so a single file (or any page served standalone) could not move off its initial route. Restored `parseHashPath()` + `bindHashRouter()` in `07-router.js` and wired into `init()` (`renderPath(parseHashPath() || parsePath())`).
-3. **Learn pages + sidebar** — `19-learn.js` filled (3 pages); `build.js` gained a `LEARN_PAGES` sidebar section; `validate.js` `EXPECTED_PAGES` 30 → 33.
-4. **Research section deep expansion** — new `research/index` introduction page + `research/array` rewritten as a wiki-grade monograph (formal model, proofs, hardware reality, amortized analysis, language matrix, references). Sidebar Research section now links Introduction + Array Notes; `EXPECTED_PAGES` 33 → 34.
-5. **Code pages split** — new content module `20-split-codes.js` moves every program group (5 `~~~explain` blocks + `~~~io`) onto its own `code/<group>` page; source pages keep a `~~~code` card; problem-card "View code" now routes (`data-path`) instead of scrolling. Renderer gained `renderCodeCard`; `bindCodeBlocks` routes on code-card/solution-btn clicks; `.code-card` styles added; `EXPECTED_PAGES` 34 → 83 (49 code pages). `test_dom.js`/`test_standalone.js`/`test_mpa.js`/`test_app.js` updated for the new routing (dom/standalone/mpa all green; mpa boots 98 pages).
-6. **Stale test suites updated** in `/tmp/opencode/`: page count 30 → 33, home cards `#article .card` (26) → `#article .ds-card` (15, `DS_CARDS`), sidebar `#topics-children` → `#array-children`, coming-soon paths excluded from the DB-key check (they live in `DS_CARDS`).
-
-### Quick sanity commands (run in `/sdcard/Projects/dsa-knowledge-base/`)
-```
-node build.js && node validate.js
-node /tmp/opencode/test_app.js && node /tmp/opencode/test_dom.js && node /tmp/opencode/test_android.js && node /tmp/opencode/test_standalone.js && node /tmp/opencode/test_mpa.js
-```
-`validate.js` must report: 83 pages, ALL CHECKS PASSED. All 5 suites must pass (last run: app ✓, dom ✓, android ✓, standalone ✓, mpa ✓ — mpa boots 98 pages).
+1. **GSAP UMD broke jsdom (and Node require) via `(this||self).window = ...`** — the UMD header tries to assign `window` on a non-configurable getter (jsdom) and on `module.exports` in Node. Fixed in `build.js`: GSAP is invoked with `(function(){…}).call(__g)` where `__g = {}`; afterwards `__global.gsap` is set from `__g.window.gsap`. Real browsers behave identically; the jsdom harness needs no shim.
+2. **Scrub bar bug (real UX bug found by DOM test)** — the scrub `input` handler called `pause()` before reading `scrub.value`, and `pause()` → `updateControls()` resets `scrub.value = this.index`, so `goto(0)` early-returned and dragging snapped back. Fixed by capturing the index *before* pausing (`11-visualizer-engine.js` scrub handler + `wireScrubDrag` `onDown`).
+3. **Standalone had no viz** — `build.js` section 7 inlines `dist/script.js`, so after the engine/viz modules landed the single file carries GSAP + all visualizations; verified via `test_standalone_viz.js` (hash-nav to a viz page mounts + animates).
+4. **`VIZ_CONFIG` wasn't exported** — declared in `core/10-init.js` (so it exists before `module.exports`) and added to the export object; `src/js/viz/00-registry.js` is now comment-only.
+5. **`test_mpa.js` slowed down** — with a visualizer on 28 pages, the `0ms` requestAnimationFrame stub made GSAP's ticker spin; stubbed rAF to a no-op and `dom.window.close()` after each page. Still ~2.5 min for 98 pages.
+6. **Traversal suffix-max narration was wrong** — printed a constant array; now emits the true per-position suffix-max array `[8,8,8,8,3]`.
 
 ### Ground rules to keep (they hold up the validator)
 - Every program group covers **all 5 languages** (C/C++/Java/Python/Dart) as **full standalone programs** (include/import + entry point + print/return).
 - Exactly **one `~~~io` per group**; every page with groups needs matching io boxes.
 - Full C/C++ programs need an entry point that exits successfully (`printf`/`cout` + `return 0`).
 - Group names must be **unique app-wide** (a snippet group cannot reuse a topic group name — e.g. snippet Kadane is `maxsubarray`, not `kadane`).
-- After every content edit: `node --check <file> && node build.js && node validate.js`, then the 5 suites.
+- After every content edit: `node --check <file> && node build.js && node validate.js`, then the suites.
+- Viz configs: one file per page under `src/js/viz/**`, self-registered into `VIZ_CONFIG` (container in `core/10-init.js`), `simulate(state, params) => frames`, engine primitives in `core/11-visualizer-engine.js`, `.viz` styles in `src/style.css`. Keep frame traces aligned with the page's Step-by-Step table.
 
 ### Next stages in order
-1. **Phase 4 (ship)** — device-test on Android Chrome (`dist/index.standalone.html` via file manager `content://`, and via an HTTP file-server app), then ship the standalone.
-2. **Post-ship (P2/P3 backlog)** — reading time estimator, prev/next nav, more DSA topics (Linked List, Stack, Queue, Tree, Graph, DP, Greedy), problem difficulty filter, tag filtering, PWA manifest / service worker / system theme auto-detect. (Featured LeetCode/Codeforces problems w/ solutions is optional Stage C tail.)
+1. **Phase 4, Stage B (problems)** — one viz config per problem page: interview problems first (16), then LeetCode (8), then snippets (11). Code pages already inherit their topic's viz (the lookup strips `code/`), so only problem/snippet pages need new files.
+2. **Phase 4, Stage C (AI "Ask Doubt" panel)** — OpenAI-compatible endpoint (keys stay server-side in `server.js`, stdlib proxy to dodge CORS).
+3. **Phase 5 (ship)** — device-test on Android Chrome (`dist/index.standalone.html` via file manager `content://`, and via an HTTP file-server app), then ship the standalone.
+4. **Post-ship (P2/P3 backlog)** — reading time estimator, prev/next nav, more DSA topics (Linked List, Stack, Queue, Tree, Graph, DP, Greedy), problem difficulty filter, tag filtering, PWA manifest / service worker / system theme auto-detect. (Featured LeetCode/Codeforces problems w/ solutions is optional Stage C tail.)
 
 ---
+
+## Phase 4, Stage A — Interactive Visualizations for every topic (14/14) ✅
+
+### Engine (`src/js/core/11-visualizer-engine.js`)
+- `Visualizer` (build → wireControls → rerun) with `Visualizer.prototype` primitives: `ensureCells` (array cells, diff-on-value, shrinks-async), `setHighlights`, `flashCells`, `movePointer`, `setWindow` (sliding-window overlay via scaleX), `ensureBars` (+ labels), `swapAnimate` (physical position exchange), `setVars`, `narrate`, `renderSubRow` (second labeled cell row: prefix table / hash buckets / merge result / part sums), `renderMatrix` (2D grid), `goto/next/prev/restart/applyInput`, `dispose`.
+- `VizPlayer`: play/pause/next/prev/scrub/speed; reduced-motion → jump to last frame.
+- Mounting: `vizInitForPage()` inserts the `.viz` mount right after the article's first `blockquote`; looks up `VIZ_CONFIG[currentPath]` (strips `code/` for code pages); teardown via `vizTeardownAll()` at the top of every render. `IntersectionObserver` pauses the player off-screen; `ResizeObserver` relayouts. Autoplay after 350 ms unless reduced motion.
+- GSAP is used only for transforms/opacity (never top/left); wrapped in `build.js` so the UMD header is jsdom/Node-safe.
+
+### Topic configs (`src/js/viz/topics/`, 14 files, `01`–`14` + two-pointers)
+Each registers `VIZ_CONFIG['topics/<name>']` (plus a bare `<name>` alias for the code page) with `title`, `family`, `defaultState`, `inputs` (custom-input re-simulation), `legend`, `stepMs`, `simulate(state)`.
+
+| Topic | What it animates | Sample outcome (asserted) |
+|---|---|---|
+| traversal | forward sum + reverse suffix max | sum 19; suffix `[8,8,8,8,3]` |
+| prefix-sum | build pref row + range queries | sum(1..3)=6, sum(0..4)=14 |
+| difference-array | O(1) range updates on diff + materialize | `[5,8,5,5,3,0]` |
+| sliding-window | window slides, O(1) sum update | best 9 at `[2..4]` |
+| two-pointers | l/r converge on sorted pair | found `[2,3]` |
+| kadane | cur/best with current-subarray window | 6 at `[3..6]` |
+| sorting | bubble / selection / insertion | sorted `[1..6]` |
+| binary-search | probes with eliminated-half dimming | found idx 4 |
+| hashing | hash-map bucket row grows | best 4 × 4 |
+| matrix | 90° rotate (transpose + reverse rows) | `[[7,4,1],[8,5,2],[9,6,3]]` |
+| merge-intervals | sort + merge, result sub-row | `[1,6] [8,10] [15,18]` |
+| dutch-national-flag | lo/mid/hi one-pass swap | `[0,0,1,1,2,2]` |
+| binary-search-answer | BS on answer + greedy feasibility | answer 18 |
+| complexity | O(1)/O(n)/O(n²)/O(log n) bars vs n | bars at n=16 |
+
+### CSS
+`.viz` block appended in `src/style.css` before Print Styles: `.viz-head/.title/.legend`, `.viz-stage`, `.viz-cell` (+ `vz-left/right/compare/swap/found/active/pivot/dim`), `.viz-ptr`, `.viz-window`, `.viz-bar` (+ name), `.viz-sub` (+ label/cells), `.viz-matrix`, `.viz-vars`, `.viz-narr`, `.viz-log`, `.viz-controls`, `.viz-input`, theme-scoped soft-color vars, `prefers-reduced-motion` + print guards.
+
+### Verification (all green)
+- Build: `dist/script.js` 890 KB, `index.standalone.html` 966 KB, 98 HTML pages.
+- `validate.js` → ALL CHECKS PASSED (83 pages).
+- Suites: `test_app` ✓, `test_viz_traces` ✓ (14 traces), `test_viz_topics` ✓ (14 pages), `test_viz` ✓, `test_dom` ✓, `test_mpa` ✓ (98 pages), `test_standalone` ✓, `test_android` ✓, `test_standalone_viz` ✓.
+
+### Next
+- **Stage B (problems):** one viz per problem page — interview (16) → LeetCode (8) → snippets (11). Code pages already inherit topic vizes.
+
+
 
 ## Phase 3, Stage B (continued) — Learn pages (33 pages) ✅
 
@@ -458,11 +501,12 @@ Sources woven into History/Origin sections: binary search = Mauchly 1946 Moore S
 ## Next Steps (full roadmap)
 
 1. **[DONE] Phase 3 Stage B — content build:** all 14 array topics converted to the full template; merged Snippets page expanded to 11 groups. Verified green (130 blocks / 1842 lines / 16 io pages).
-2. **Phase 3 Stage C — problems:** convert all 16 interview cards in `15-interview.js` (5-lang full solution + `~~~io` + per-line refs + approach steps) — pattern = existing `twosum`; then add featured LeetCode/Codeforces problems with solutions.
-3. **Phase 3 — learn pages:** build `getting-started`, `glossary`, `references` in `19-learn.js` → 37 pages; bump `EXPECTED_PAGES` in `validate.js`, add sidebar entries.
-4. **Phase 4 — ship:** re-verify all 4 suites (incl. hostile `file://` + `content://`), device-test on Android Chrome, ship `dist/index.standalone.html`.
-5. **Post-ship (P2/P3 backlog):** reading time, prev/next nav, more DSA topics (Linked List, Stack, Queue, Tree, Graph, DP, Greedy), problem difficulty filter, tag filtering, PWA manifest / service worker / theme auto-detect.
+2. **[DONE] Phase 4 Stage A — interactive visualizations for all 14 topics:** GSAP engine + one config per topic, mount/teardown wired into the router, vendored offline GSAP, 14 traces asserted correct, standalone carries the vizes too. (2026-08-06.)
+3. **Phase 4 Stage B — problems:** one viz per problem page — interview (16) → LeetCode (8) → snippets (11). Code pages already inherit their topic's viz.
+4. **Phase 4 Stage C — AI "Ask Doubt" panel:** OpenAI-compatible endpoint (`https://vedalabs-vedika-advanced-ai-4-1-flash.hf.space/v1/chat/completions`), keys server-side in a stdlib `server.js` proxy to dodge CORS.
+5. **Phase 5 — ship:** re-verify all suites, device-test on Android Chrome, ship `dist/index.standalone.html`.
+6. **Post-ship (P2/P3 backlog):** reading time, prev/next nav, more DSA topics (Linked List, Stack, Queue, Tree, Graph, DP, Greedy), problem difficulty filter, tag filtering, PWA manifest / service worker / theme auto-detect.
 
 ---
 
-*Last Updated: 2026-08-03 (Phase 3 Stage B complete — all 14 array topics converted, snippets = 11 groups. **Next session: Stage C — interview cards in `15-interview.js`, see "RESUME HERE" at top.**)*
+*Last Updated: 2026-08-06 (Phase 4 Stage A complete — GSAP visualizer engine + all 14 topic animations, traces asserted, standalone includes vizes. **Next session: Phase 4 Stage B — viz configs for the 16 interview problem pages in `15-interview.js`, see "RESUME HERE" at top.**)*

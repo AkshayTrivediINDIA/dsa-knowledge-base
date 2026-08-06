@@ -7,6 +7,11 @@
    Init
    ============================================================ */
 
+/* visualizer config container — populated by the src/js/viz/** modules
+   (topics + problems). Declared here in core so it exists before the
+   module.exports below and is shared by the viz modules. */
+var VIZ_CONFIG = {};
+
 function safe(fn) {
     try { fn(); } catch (e) { /* never let one subsystem break the app */ }
 }
@@ -45,6 +50,8 @@ if (typeof module !== 'undefined' && module.exports) {
         renderPath: renderPath,
         navigate: navigate,
         pageFile: pageFile,
-        refUrl: refUrl
+        refUrl: refUrl,
+        VIZ_CONFIG: VIZ_CONFIG,
+        Visualizer: Visualizer
     };
 }

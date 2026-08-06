@@ -28,13 +28,50 @@ function listModules(dir) {
         .sort();
 }
 
+/* recursive variant for src/js/viz/** — returns relative paths sorted
+   by name (00-registry.js, topics/01-*.js, problems/01-*.js, ...) */
+function listModulesRec(dir) {
+    const out = [];
+    (function walk(d, prefix) {
+        fs.readdirSync(d, { withFileTypes: true }).forEach((ent) => {
+            const full = path.join(d, ent.name);
+            if (ent.isDirectory()) walk(full, prefix + ent.name + '/');
+            else if (/^\d+[\w-]+\.js$/.test(ent.name)) out.push(prefix + ent.name);
+        });
+    })(dir, '');
+    return out.sort();
+}
+
 /* ---------- 1. assemble script.js ---------- */
+/* vendor GSAP — bundled locally so the whole app stays offline.
+   GSAP's UMD header does `(this||self).window = ...` to grab a global;
+   that assignment throws in jsdom (window.window is a non-configurable
+   getter there). Invoke GSAP with `this` = a plain object instead, then
+   copy `gsap` onto the real global — browsers behave identically. */
+const GSAP_PATH = path.join(SRC, 'vendor', 'gsap.min.js');
 let js = BANNER + "'use strict';\n\n";
+if (fs.existsSync(GSAP_PATH)) {
+    js += '/* -------- vendor: GSAP 3.12.5 (bundled, offline) -------- */\n\n' +
+        '(function () {\n' +
+        '    var __g = {};\n' +
+        '    var __global = (typeof globalThis !== \'undefined\') ? globalThis\n' +
+        '        : (typeof window !== \'undefined\') ? window\n' +
+        '        : (typeof self !== \'undefined\') ? self\n' +
+        '        : null;\n' +
+        '    (function () {\n' + fs.readFileSync(GSAP_PATH, 'utf8').trim() + '\n' +
+        '    }).call(__g);\n' +
+        '    var __api = (__g.window && __g.window.gsap) ? __g.window.gsap : __g.gsap;\n' +
+        '    if (__api && __global) __global.gsap = __api;\n' +
+        '})();\n\n';
+}
 listModules(path.join(SRC, 'js/core')).forEach((f) => {
     js += '\n/* -------- module: core/' + f + ' -------- */\n\n' + fs.readFileSync(path.join(SRC, 'js/core', f), 'utf8').trimEnd() + '\n';
 });
 listModules(path.join(SRC, 'js/content')).forEach((f) => {
     js += '\n/* -------- module: content/' + f + ' -------- */\n\n' + fs.readFileSync(path.join(SRC, 'js/content', f), 'utf8').trimEnd() + '\n';
+});
+listModulesRec(path.join(SRC, 'js/viz')).forEach((f) => {
+    js += '\n/* -------- module: viz/' + f + ' -------- */\n\n' + fs.readFileSync(path.join(SRC, 'js/viz', f), 'utf8').trimEnd() + '\n';
 });
 js += '\n';
 
