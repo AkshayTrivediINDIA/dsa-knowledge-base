@@ -12,7 +12,8 @@
 ## ⏭️ RESUME HERE — Start Point for Next Session
 
 ### Current Snapshot (all green, verified 2026-08-08)
-- **83-page hybrid MPA/SPA** (vanilla HTML/CSS/JS) **+ interactive visualizations**. Works as MPA over `http://` (serve `dist/`) and as a **single-file SPA** (`dist/index.standalone.html`) over `http://`, `file://` and Android `content://` — all navigation is hash-based (`#/path`), so **no web server or sibling files are required to browse the whole site**.
+- **83-page hybrid MPA/SPA** (vanilla HTML/CSS/JS) **+ interactive visualizations + AI "Ask Doubt" panel**. Works as MPA over `http://` (serve `dist/`) and as a **single-file SPA** (`dist/index.standalone.html`) over `http://`, `file://` and Android `content://` — all navigation is hash-based (`#/path`), so **no web server or sibling files are required to browse the whole site**.
+- **AI "Ask Doubt" tutor panel (NEW — Stage C):** floating chat FAB + slide-out panel on every page (98 HTML files carry it). Auto-injects the current page title/path as system context, safe markdown-lite rendering (fenced code, inline code, bold; HTML escaped), typing indicator, in-chat settings for a custom server URL, clear-chat button, chat history persisted (`dsa_doubt_history`), and a friendly offline fallback when no AI server is reachable — **the static site itself stays 100% offline**. Client module `src/js/core/12-doubt.js`; proxy is `server.js` (zero-dep Node) holding the API key server-side, serving `dist/` and exposing `POST /api/ask` (normalized `{ok,text}`) + `GET /api/config`, with CORS + OPTIONS preflight so the `file://`/`content://` standalone can talk to a LAN server too. **AI backend (2026-08-08): auto-discovered free OpenCode Zen models (nemotron-3-ultra-free, deepseek-v4-flash-free, mimo-v2.5-free, … — ALL `-free` models fetched live at startup from `/zen/v1/models`) as primary chain, free-proxy fallbacks (pollinations/keylessai/api.airforce) behind them; API key lives in `server-config.json`, zero setup — just `node server.js`. Live-verified: real questions answered (`{"text":"**O(log n)** — because the search space halves each step.","backend":"nemotron-3-ultra-free"}`).**
 - **Every program group has its own page** (`20-split-codes.js`): 49 `code/<group>` pages. Topic/interview/snippet pages keep a **code card** that routes to the code page; problem-card **View code** buttons route too. Same behaviour in MPA and standalone (shared script).
 - **Interactive visualizations (Phase 4 complete — topics 14/14 + problems 35/35):**
   - Shared GSAP engine `src/js/core/11-visualizer-engine.js` (`Visualizer` + `VizPlayer` + mounting/teardown wired into `07-router.js`; primitives: array cells, l/r pointers, sliding-window overlay, bars with labels, swap animation, second "sub" row, 2D matrix grid, vars chips, step narration, log; dark/light theming via CSS vars; respects `prefers-reduced-motion`).
@@ -20,22 +21,25 @@
   - **All 14 topic pages have a runnable visualizer** (traversal … complexity) under `src/js/viz/topics/`.
   - **ALL 35 problem code pages have a runnable visualizer (NEW — Stage B):** 16 interview (`src/js/viz/problems/interview/`: twosum, buysellstock, movezeroes, majorityelement, containsduplicate, removeduplicates, subarraysumk, longestsubstr, maxprodsubarray, mergeintervals, findanagrams, splitarray, firstmissing, trappingwater, slidingwindowmax, containerwater), 8 LeetCode (`src/js/viz/problems/leetcode/`: removeelement, plusone, mergesorted, missingnumber, rangesum, intersection, disappeared, pivotindex), 11 snippets (`src/js/viz/problems/snippets/`: sumarray, reverse, prefixsum, diffarray, maxsubarray, windowmax, twopointer, binsearch, freqcount, selsort, intervalmerge). Each config is keyed by the **bare group name** so `code/<group>` picks it up via the `code/`-strip lookup; several snippet/LC vizzes reuse a topic simulate function with the snippet's own example data as `defaultState`.
   - Every problem trace uses the **same example data as its code page's `~~~io` box** (asserted by `test_viz_traces.js`).
-- Build sizes: `dist/script.js` 979 KB, `dist/index.standalone.html` 1055 KB, 98 static HTML pages, `dist/style.css` 55 KB.
+- Build sizes: `dist/script.js` 965 KB, `dist/index.standalone.html` 1050 KB, 98 static HTML pages, `dist/style.css` ~68 KB.
 - `validate.js` reports: **83 pages, ALL CHECKS PASSED** (245 explain blocks, 3110 explained lines, 49 pages with program groups).
 
 ### Test suites (all green, `/tmp/opencode/`)
 - `validate.js` — 83 pages, ALL CHECKS PASSED.
 - `test_app.js` (83 pages), `test_dom.js`, `test_mpa.js` (98 pages boot), `test_standalone.js` (content://), `test_android.js` (hostile file://).
 - **Viz suites**: `test_viz.js` (two-pointers DOM), `test_viz_topics.js` (14 topic pages mount + step), `test_viz_problems.js` (35 problem code pages mount + step to last frame), `test_viz_traces.js` (14 topic + 35 problem simulations' final results asserted), `test_standalone_viz.js` (standalone mounts a viz via hash nav).
-- **Run command**: `node build.js && node validate.js && node /tmp/opencode/test_app.js && node /tmp/opencode/test_viz_traces.js && node /tmp/opencode/test_viz_topics.js && node /tmp/opencode/test_viz_problems.js && node /tmp/opencode/test_viz.js && node /tmp/opencode/test_dom.js && node /tmp/opencode/test_mpa.js && node /tmp/opencode/test_standalone.js && node /tmp/opencode/test_android.js` (test_mpa ~2.5 min, test_viz_problems ~2 min, test_dom/standalone/android ~1 min each — run one at a time).
+- **Doubt suite (NEW)**: `test_doubt.js` — panel mount/open/close, send→payload shape (system context + question), typing indicator, AI markdown render, error path, `file://` offline path, settings URL save/persist, clear chat, `doubtRender`/`doubtAskUrl` units (34 checks).
+- **Run command**: `node build.js && node validate.js && node /tmp/opencode/test_app.js && node /tmp/opencode/test_viz_traces.js && node /tmp/opencode/test_viz_topics.js && node /tmp/opencode/test_viz_problems.js && node /tmp/opencode/test_viz.js && node /tmp/opencode/test_dom.js && node /tmp/opencode/test_doubt.js && node /tmp/opencode/test_mpa.js && node /tmp/opencode/test_standalone.js && node /tmp/opencode/test_android.js && node /tmp/opencode/test_standalone_viz.js` (test_mpa ~2.5 min, test_viz_problems ~2 min, test_dom/standalone/android ~1 min each — run one at a time).
 
-### Serving over HTTP
+### Serving over HTTP (with the AI proxy)
 ```
-cd dist && python3 -m http.server 8000     # then open http://localhost:8000/index.html
-# or, for a zero-dependency single file that works from anywhere (http / file / content://):
-#   open http://localhost:8000/index.standalone.html
+cd dist && python3 -m http.server 8000     # browse-only, no AI
+# full site + Ask Doubt AI (KeylessAI default, no key needed):
+node server.js                             # serves dist/ on :8000 + AI via keylessai.thryx.workers.dev
+PORT=9000 node server.js                   # different port
+AI_ENDPOINT=... AI_TOKEN=... AI_MODEL=... node server.js   # point at any other OpenAI-compatible backend
 ```
-MPA pages (`index.html` + sibling `*.html`) need the whole `dist/` folder served; `index.standalone.html` is self-contained.
+MPA pages (`index.html` + sibling `*.html`) need the whole `dist/` folder served; `index.standalone.html` is self-contained. The standalone opened via `file://` / `content://` can still reach the AI by opening the panel's **settings gear** and pasting the proxy URL (e.g. `http://192.168.1.5:8000`) — the proxy sends CORS headers so a LAN phone/browser can use it.
 
 ### This session's fixes (regressions found & fixed)
 1. **GSAP UMD broke jsdom (and Node require) via `(this||self).window = ...`** — the UMD header tries to assign `window` on a non-configurable getter (jsdom) and on `module.exports` in Node. Fixed in `build.js`: GSAP is invoked with `(function(){…}).call(__g)` where `__g = {}`; afterwards `__global.gsap` is set from `__g.window.gsap`. Real browsers behave identically; the jsdom harness needs no shim.
@@ -55,7 +59,7 @@ MPA pages (`index.html` + sibling `*.html`) need the whole `dist/` folder served
 
 ### Next stages in order
 1. ~~**Phase 4, Stage B (problems)** — one viz config per problem page: interview problems first (16), then LeetCode (8), then snippets (11).~~ **✅ DONE (2026-08-08): 35/35 problem code pages animated.**
-2. **Phase 4, Stage C (AI "Ask Doubt" panel)** — OpenAI-compatible endpoint (keys stay server-side in `server.js`, stdlib proxy to dodge CORS).
+2. ~~**Phase 4, Stage C (AI "Ask Doubt" panel)** — floating chat panel + zero-dep `server.js` proxy (key in `AI_TOKEN` env, never in the static site).~~ **✅ DONE (2026-08-08): panel + proxy + 34-check test suite green.**
 3. **Phase 5 (ship)** — device-test on Android Chrome (`dist/index.standalone.html` via file manager `content://`, and via an HTTP file-server app), then ship the standalone.
 4. **Post-ship (P2/P3 backlog)** — reading time estimator, prev/next nav, more DSA topics (Linked List, Stack, Queue, Tree, Graph, DP, Greedy), problem difficulty filter, tag filtering, PWA manifest / service worker / system theme auto-detect. (Featured LeetCode/Codeforces problems w/ solutions is optional Stage C tail.)
 
@@ -151,6 +155,56 @@ Each registers `VIZ_CONFIG['<group>']` with the **bare group name** as the key, 
 
 ### Next
 - **Stage C (AI "Ask Doubt" panel)**, then **Phase 5 (ship)**. See "Next stages in order" above.
+
+---
+
+## Phase 4, Stage C — AI "Ask Doubt" tutor panel ✅
+
+### The problem it solves
+The static site can never hold the AI key (anyone who opens the page could read it), and a raw fetch from the browser to the OpenAI-compatible endpoint trips CORS. So: the page talks to a tiny local/self-hosted **proxy** that keeps the key in an environment variable.
+
+### `server.js` (project root, zero dependencies — pure Node `http`/`https`/`fs`)
+- Serves `dist/` statically (`node server.js` → http://localhost:8000).
+- `POST /api/ask` — validates `messages[]`, forwards to the endpoint with `Authorization: Bearer $AI_TOKEN`, normalizes to `{ok, text, model, usage}`; error passthrough (`{ok:false, error, status}`).
+- `GET /api/config` — `{configured, model, endpoint}` (never leaks the key).
+- CORS `Access-Control-Allow-Origin` (default `*`) + OPTIONS preflight, so the `file://`/`content://` standalone can call a LAN proxy too.
+- Env overrides: `PORT` (8000), `AI_ENDPOINT` (set → ONLY that custom backend is used, old single-backend behaviour), `AI_TOKEN`, `AI_MODEL` (override the primary backend), `AI_POLL_URL` (override the Pollinations URL — debug/mirror), `ALLOW_ORIGIN`, `STATIC_DIR`.
+- **Reliability upgrade (2026-08-08): multi-backend auto-failover.** Default chain: **OpenCode Zen free models** (`https://opencode.ai/zen/v1/chat/completions`, Bearer key from `server-config.json` or `AI_TOKEN`) — **all `-free` models are auto-discovered at startup** from the `/models` endpoint (currently 8: nemotron-3-ultra-free, deepseek-v4-flash-free, mimo-v2.5-free, longcat-2.0-free, laguna-s-2.1-free, ling-3.0-flash-free, ling-3.0-tiny-free, north-mini-code-free), so new free models are picked up automatically and broken ones fail over to the next. Then free keyless fallbacks: **pollinations** (anonymous) → **keylessai** (dead/NXDOMAIN) → **api.airforce** (rate-limited). Every backend has its own **FIFO serial queue**, retries (transient/network → 1 short retry then fail over; auth → no retry), per-backend cooldowns (429/402: 30s, 401/403: 5min, 5xx: 30s, network: 20s), last-known-good rotation, and `cleanAnswer()` strips proxy ad/deprecation lines. Zen backends use a 60s timeout (reasoning models).
+- **`server-config.json` (new):** optional `{ "token": "<API key>", "model": "<free model id>" }` at project root — end users run `node server.js` with **zero env vars**. Env overrides win: `AI_TOKEN`/`AI_MODEL`; `AI_ENDPOINT` keeps the old single-custom-backend mode; `AI_POLL_URL` overrides the pollinations URL (debug). The key is never served by `/api/config` and never copied into `dist/`.
+- **Pollinations anonymous-tier quirks (2026-08-08, tested):** (a) any request carrying a `temperature` field is answered **402** instantly; (b) a `system`-role message routes to the **paid pollen path** → 402 ("API key budget too low … request costs ~0.0002 pollen, key has 0.0000"); (c) the anonymous tier has a **small daily pollen budget** — trivial calls pass, real DSA-length questions exhaust it. The adapter therefore sends Pollinations a minimal body (`model, user-only messages, max_tokens`, **no temperature**, system prompt merged into the first user message) — verified via a local echo backend. Best-effort free; for reliable production set `AI_ENDPOINT`/`AI_TOKEN` to a real key.
+
+### Client panel (`src/js/core/12-doubt.js` — module 12, after the viz engine)
+- FAB button (`#doubtFab`) + slide-out panel (`#doubtPanel`) on **every** page (template ships it; all 98 generated HTML files carry it).
+- `doubtAskUrl()` → same-origin `/api/ask` on http(s); otherwise the saved `dsa_doubt_url` override (settings gear) + `/api/ask`; empty → offline mode.
+- `sendDoubt()` builds `{system: doubtContext() (page title + path), user: question}` and POSTs; typing indicator, then rendered answer.
+- `doubtRender()` — safe markdown-lite: HTML-escapes first, then fenced ```` ``` ```` → `<pre class="doubt-code">`, `**bold**` → `<strong>`, `` `code` `` → `<code>`, paragraph wrapping. No raw HTML ever hits the DOM.
+- Chat history persisted under `dsa_doubt_history` (capped 40), welcome bubble, clear-chat button, Esc closes, Enter sends / Shift+Enter newline.
+- **Offline-first**: no server URL → a friendly hint (panel + gear instructions); fetch failure → friendly error bubble; the site itself is untouched by any of it (guarded by `safe(bindDoubt)` in `init()`).
+- Exports for tests: `bindDoubt`, `openDoubt`, `closeDoubt`, `sendDoubt`, `doubtRender`, `doubtAskUrl`, `doubtSetServerUrl`, `doubtClear`.
+
+### Wiring
+- `10-init.js`: `safe(bindDoubt)` added to `init()`; new exports.
+- `template.html`: FAB + panel markup before `<script>`.
+- `style.css`: `.doubt-*` block before Print Styles (dark theme uses CSS vars, `prefers-reduced-motion` guards, print hides FAB/panel).
+
+### Verification (all green)
+- Build: `dist/script.js` 965 KB, `index.standalone.html` 1050 KB, 98 HTML pages.
+- `validate.js` → ALL CHECKS PASSED.
+- **New `test_doubt.js` (34 checks)**: mount/open/close, FAB active state, welcome bubble, send → posts to `/api/ask` with correct `{system,user}` payload, user bubble, AI markdown render (fence/inline-code/bold), typing indicator removed, input re-enabled, console-error-free; error path shows friendly message + detail; `file://` shows offline hint + offline send message; settings save→row closes→offline hint disappears→input pre-filled; clear chat resets; `doubtRender` unit (escape/bold/inline/fence) and `doubtAskUrl` unit (empty → ''; base URL → base + `/api/ask`).
+- Full regression suite (test_app, test_dom, test_mpa 98 pages, test_standalone, test_android, test_viz, test_viz_topics, test_viz_problems, test_viz_traces, test_standalone_viz) — all green.
+- Live smoke: `server.js` serves index + standalone, `/api/config`, `/api/ask` health, no-token 503, dummy-token forward returns the upstream 401 detail, OPTIONS preflight 204.
+- **LIVE VERIFIED (2026-08-08):** `node server.js` discovers 8 free zen models at startup; real asks answered with high quality at `cost:"0"` — e.g. `{"ok":true,"text":"**O(log n)** — because the search space halves each step.","backend":"nemotron-3-ultra-free"}` (also verified deepseek-v4-flash-free, mimo-v2.5-free, longcat-2.0-free). **Failover proven:** starting with a broken model (`north-mini-code-free`) auto-rotated to a working one and still answered. `/api/config` never leaks the key; key not present in `dist/`. (Paid zen models give 401 "No payment method" — only `-free` models are used.)
+
+### How to enable AI
+```
+node server.js                             # browse + AI on http://localhost:8000 — zero setup, auto-discovered free models
+```
+The API key lives in `server-config.json` (root) so end users never set env vars; the panel auto-uses the same-origin proxy (no URL to enter). To point at your own key/endpoint instead:
+`AI_ENDPOINT=https://<host>/v1/chat/completions AI_TOKEN=<key> AI_MODEL=<model> node server.js`
+For the phone/`file://` standalone only: open the panel gear and paste `http://<host>:8000`.
+
+### Next
+- **Phase 5 (ship)**, then the P2/P3 backlog (reading time, prev/next nav, more DS topics, PWA).
 
 
 
@@ -556,10 +610,10 @@ Sources woven into History/Origin sections: binary search = Mauchly 1946 Moore S
 1. **[DONE] Phase 3 Stage B — content build:** all 14 array topics converted to the full template; merged Snippets page expanded to 11 groups. Verified green (130 blocks / 1842 lines / 16 io pages).
 2. **[DONE] Phase 4 Stage A — interactive visualizations for all 14 topics:** GSAP engine + one config per topic, mount/teardown wired into the router, vendored offline GSAP, 14 traces asserted correct, standalone carries the vizes too. (2026-08-06.)
 3. **[DONE] Phase 4 Stage B — problems:** one viz per problem page — interview (16) + LeetCode (8) + snippets (11) = 35 code-page vizzes, all traces match each `~~~io` example, `test_viz_problems.js` steps every frame. (2026-08-08.)
-4. **Phase 4 Stage C — AI "Ask Doubt" panel:** OpenAI-compatible endpoint (`https://vedalabs-vedika-advanced-ai-4-1-flash.hf.space/v1/chat/completions`), keys server-side in a stdlib `server.js` proxy to dodge CORS.
+4. **[DONE] Phase 4 Stage C — AI "Ask Doubt" panel:** floating chat panel + zero-dep `server.js` proxy with **auto-discovered free OpenCode Zen models as primary** (all `-free` models from `/zen/v1/models` at startup, `server-config.json` key, zero setup) + free-proxy fallbacks (pollinations → keylessai → api.airforce), per-backend serial queue, retries, cooldowns, last-known-good rotation, 60s zen timeout, key never in the static site nor in `/api/config`, `AI_ENDPOINT`/`AI_TOKEN`/`AI_MODEL`/`AI_POLL_URL` overrides, 34-check `test_doubt.js`, CORS for the standalone. **Live-verified: real DSA answers via nemotron-3-ultra-free + failover rotation proven.** (2026-08-08.)
 5. **Phase 5 — ship:** re-verify all suites, device-test on Android Chrome, ship `dist/index.standalone.html`.
 6. **Post-ship (P2/P3 backlog):** reading time, prev/next nav, more DSA topics (Linked List, Stack, Queue, Tree, Graph, DP, Greedy), problem difficulty filter, tag filtering, PWA manifest / service worker / theme auto-detect.
 
 ---
 
-*Last Updated: 2026-08-08 (Phase 4 complete — 14 topic + 35 problem visualizations, 49 traces asserted, standalone carries all vizes. **Next session: Phase 4 Stage C — AI "Ask Doubt" panel; see "RESUME HERE" at top.**)*
+*Last Updated: 2026-08-08 (Phases 1–4 complete — 14 topic + 35 problem visualizations, 49 traces asserted, AI "Ask Doubt" panel + zero-dep proxy with **auto-discovered free OpenCode Zen models** (nemotron-3-ultra-free etc., key in `server-config.json`, zero setup) + free-proxy fallbacks, **live-verified real DSA answers + failover rotation**. **Next session: Phase 5 — device-test on Android Chrome and ship the standalone; see "RESUME HERE" at top.**)*

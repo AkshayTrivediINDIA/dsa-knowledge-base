@@ -2596,6 +2596,274 @@ body {
     .viz { display: none !important; }
 }
 
+/* ============================================
+   Ask Doubt — AI tutor panel
+   ============================================ */
+
+.doubt-fab {
+    position: fixed;
+    right: 20px;
+    bottom: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent-primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--shadow-lg);
+    z-index: 200;
+    transition: transform var(--transition-fast), background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+}
+.doubt-fab:hover { background: var(--accent-secondary); transform: translateY(-2px); }
+.doubt-fab .doubt-fab-close { display: none; }
+.doubt-fab.active .doubt-fab-icon { display: none; }
+.doubt-fab.active .doubt-fab-close { display: block; }
+
+.doubt-panel {
+    position: fixed;
+    right: 20px;
+    bottom: 92px;
+    width: min(400px, calc(100vw - 32px));
+    height: min(560px, calc(100vh - 150px));
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    z-index: 210;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity var(--transition-normal), transform var(--transition-normal);
+}
+.doubt-panel.open {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    visibility: visible;
+}
+
+.doubt-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-primary);
+    background: var(--bg-secondary);
+    flex: 0 0 auto;
+}
+.doubt-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+.doubt-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-success); }
+.doubt-badge {
+    background: var(--accent-purple);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+}
+.doubt-header-actions { display: flex; align-items: center; gap: 2px; }
+.doubt-header-actions .btn-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border: none;
+    background: transparent;
+}
+.doubt-header-actions .btn-icon:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+
+.doubt-settings {
+    display: flex;
+    gap: 6px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-primary);
+    background: var(--bg-tertiary);
+    flex: 0 0 auto;
+}
+.doubt-settings[hidden] { display: none; }
+.doubt-settings input {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 8px;
+    font-size: 12px;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+}
+.doubt-save {
+    flex: 0 0 auto;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid var(--accent-primary);
+    border-radius: var(--radius-sm);
+    background: var(--accent-primary);
+    color: #fff;
+    cursor: pointer;
+}
+.doubt-save:hover { background: var(--accent-secondary); }
+
+.doubt-messages {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    -webkit-overflow-scrolling: touch;
+}
+.doubt-msg {
+    max-width: 88%;
+    padding: 8px 11px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+.doubt-msg p { margin: 0 0 6px; }
+.doubt-msg p:last-child { margin-bottom: 0; }
+.doubt-msg-ai {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-secondary);
+    color: var(--text-primary);
+    align-self: flex-start;
+    border-top-left-radius: 2px;
+}
+.doubt-msg-user {
+    background: var(--accent-primary);
+    color: #fff;
+    align-self: flex-end;
+    border-top-right-radius: 2px;
+}
+.doubt-msg code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: rgba(127, 127, 127, 0.18);
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+.doubt-msg-user code { background: rgba(255, 255, 255, 0.24); }
+.doubt-msg pre.doubt-code {
+    margin: 6px 0 2px;
+    padding: 8px 10px;
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    white-space: pre;
+}
+.doubt-msg strong { font-weight: 700; }
+.doubt-error { color: var(--accent-danger); }
+.doubt-hint-text { color: var(--text-tertiary); font-size: 12px; }
+
+.doubt-offline {
+    padding: 8px 11px;
+    border: 1px dashed var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: 12px;
+    background: var(--bg-secondary);
+}
+.doubt-offline code { font-family: var(--font-mono); background: var(--bg-tertiary); padding: 1px 4px; border-radius: 3px; }
+
+.doubt-typing {
+    align-self: flex-start;
+    display: flex;
+    gap: 4px;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-md);
+    border-top-left-radius: 2px;
+}
+.doubt-typing span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+    animation: doubtBlink 1.2s infinite ease-in-out;
+}
+.doubt-typing span:nth-child(2) { animation-delay: 0.2s; }
+.doubt-typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes doubtBlink {
+    0%, 80%, 100% { opacity: 0.3; transform: scale(0.85); }
+    40% { opacity: 1; transform: scale(1); }
+}
+
+.doubt-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--border-primary);
+    background: var(--bg-primary);
+    flex: 0 0 auto;
+}
+.doubt-form textarea {
+    flex: 1;
+    min-width: 0;
+    resize: none;
+    max-height: 160px;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    outline: none;
+}
+.doubt-form textarea:focus { border-color: var(--accent-primary); }
+.doubt-send {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 auto;
+    border: none;
+    border-radius: 50%;
+    background: var(--accent-primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.doubt-send:hover { background: var(--accent-secondary); }
+.doubt-send:disabled, .doubt-form textarea:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) {
+    .doubt-panel, .doubt-fab { transition: none; }
+    .doubt-typing span { animation: none; opacity: 0.5; }
+}
+
+@media print {
+    .doubt-fab, .doubt-panel { display: none !important; }
+}
+
 /* Print Styles */
 @media print {
     .header,
@@ -2799,6 +3067,61 @@ body {
             </div>
             <button class="lang-pref-skip" id="langPrefSkip">Maybe later</button>
         </div>
+    </div>
+
+    <!-- Ask Doubt AI Tutor Panel -->
+    <button class="doubt-fab" id="doubtFab" aria-label="Ask a doubt (AI tutor)" title="Ask Doubt">
+        <svg class="doubt-fab-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+        </svg>
+        <svg class="doubt-fab-close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="doubt-panel" id="doubtPanel" aria-hidden="true">
+        <div class="doubt-header">
+            <div class="doubt-title">
+                <span class="doubt-dot"></span>
+                Ask Doubt
+                <span class="doubt-badge">AI</span>
+            </div>
+            <div class="doubt-header-actions">
+                <button class="btn-icon" id="doubtClear" title="Clear chat" aria-label="Clear chat">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
+                <button class="btn-icon" id="doubtSettings" title="AI server settings" aria-label="AI server settings">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
+                <button class="btn-icon" id="doubtClose" title="Close" aria-label="Close">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="doubt-settings" id="doubtSettingsRow" hidden>
+            <input type="text" id="doubtUrlInput" placeholder="AI server URL, e.g. http://192.168.1.5:8000" autocomplete="off">
+            <button type="button" class="doubt-save" id="doubtUrlSave">Save</button>
+        </div>
+        <div class="doubt-messages" id="doubtMessages"></div>
+        <form class="doubt-form" id="doubtForm" autocomplete="off">
+            <textarea id="doubtInput" rows="1" placeholder="Ask a doubt about this page..." aria-label="Ask a doubt"></textarea>
+            <button class="doubt-send" id="doubtSend" type="submit" aria-label="Send">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
+        </form>
     </div>
 
     <script>
@@ -4599,6 +4922,7 @@ function init() {
     safe(bindCodeBlocks);
     safe(bindScroll);
     safe(renderBookmarks);
+    safe(bindDoubt);
     safe(bindHashRouter);
     renderPath(parseHashPath() || parsePath());
 }
@@ -4626,7 +4950,15 @@ if (typeof module !== 'undefined' && module.exports) {
         pageFile: pageFile,
         refUrl: refUrl,
         VIZ_CONFIG: VIZ_CONFIG,
-        Visualizer: Visualizer
+        Visualizer: Visualizer,
+        bindDoubt: bindDoubt,
+        openDoubt: openDoubt,
+        closeDoubt: closeDoubt,
+        sendDoubt: sendDoubt,
+        doubtRender: doubtRender,
+        doubtAskUrl: doubtAskUrl,
+        doubtSetServerUrl: doubtSetServerUrl,
+        doubtClear: clearDoubtHistory
     };
 }
 
@@ -5470,6 +5802,318 @@ function vizSvgEdge(svg, x1, y1, x2, y2, opts) {
     line.setAttribute('class', 'vz-svg-edge');
     svg.appendChild(line);
     return line;
+}
+
+/* -------- module: core/12-doubt.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - script.js (module: ask-doubt)
+   "Ask Doubt" AI tutor panel — floating chat wired to the
+   server-side proxy (server.js) so the API key never ships in
+   the static site. Works over http(s) with a same-origin proxy;
+   over file:// and content:// it needs a manually-set proxy URL
+   (panel settings). Degrades to a friendly offline message when
+   the proxy is unreachable — the site itself stays fully offline.
+   ============================================================ */
+
+var doubtOpen = false;
+var doubtBusy = false;
+var doubtHistory = [];
+var DOUBT_HISTORY_KEY = 'dsa_doubt_history';
+var DOUBT_URL_KEY = 'dsa_doubt_url';
+
+function doubtIsHttpOrigin() {
+    try {
+        var p = window.location.protocol;
+        return p === 'http:' || p === 'https:';
+    } catch (e) {
+        return false;
+    }
+}
+
+function doubtAskUrl() {
+    if (doubtIsHttpOrigin()) return '/api/ask';
+    var base = String(storage.get(DOUBT_URL_KEY) || '').replace(/\/+$/, '');
+    return base ? base + '/api/ask' : '';
+}
+
+function doubtEscape(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function doubtRender(src) {
+    var blocks = String(src || '').split(/\n{2,}/);
+    var out = [];
+    for (var i = 0; i < blocks.length; i++) {
+        var b = blocks[i].trim();
+        if (b.indexOf('```') === 0) {
+            var code = b.replace(/^```[^\n]*\n?/, '').replace(/```\s*$/, '');
+            out.push('<pre class="doubt-code">' + doubtEscape(code) + '</pre>');
+        } else {
+            var line = doubtEscape(b)
+                .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+                .replace(/`([^`\n]+)`/g, '<code>$1</code>');
+            out.push('<p>' + line.replace(/\n/g, '<br>') + '</p>');
+        }
+    }
+    return out.join('');
+}
+
+function doubtContext() {
+    var title = '';
+    var p = currentPath || '';
+    try { title = document.title; } catch (e) {}
+    return 'You are a friendly, concise DSA tutor for the DSA Knowledge Base app. ' +
+        'The student is on the page "' + title + '" (path: ' + p + '). ' +
+        'Answer clearly and directly. Use short code snippets when they help. ' +
+        'If asked about a problem, explain the approach, complexity, then code.';
+}
+
+function doubtWelcome() {
+    return '<p>Hi! I\u2019m the DSA tutor. Ask about any topic, problem, or code on this page \u2014 e.g. \u201cWhy is Kadane O(n)?\u201d</p>';
+}
+
+function addDoubtMessage(role, html) {
+    var list = $('#doubtMessages');
+    if (!list) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'doubt-msg doubt-msg-' + (role === 'user' ? 'user' : 'ai');
+    wrap.innerHTML = html;
+    list.appendChild(wrap);
+    list.scrollTop = list.scrollHeight;
+}
+
+function showDoubtTyping() {
+    var list = $('#doubtMessages');
+    if (!list) return;
+    var t = document.createElement('div');
+    t.className = 'doubt-typing';
+    t.innerHTML = '<span></span><span></span><span></span>';
+    list.appendChild(t);
+    list.scrollTop = list.scrollHeight;
+}
+
+function hideDoubtTyping() {
+    var t = $('.doubt-typing');
+    if (t) t.remove();
+}
+
+function setDoubtBusy(busy) {
+    doubtBusy = busy;
+    var send = $('#doubtSend');
+    var ta = $('#doubtInput');
+    if (send) send.disabled = busy;
+    if (ta) ta.disabled = busy;
+}
+
+function saveDoubtHistory() {
+    try { storage.set(DOUBT_HISTORY_KEY, JSON.stringify(doubtHistory.slice(-40))); } catch (e) {}
+}
+
+function loadDoubtHistory() {
+    try {
+        var s = storage.get(DOUBT_HISTORY_KEY);
+        if (!s) return;
+        var arr = JSON.parse(s);
+        if (Array.isArray(arr)) doubtHistory = arr;
+    } catch (e) {}
+}
+
+function renderDoubtHistory() {
+    var list = $('#doubtMessages');
+    if (!list) return;
+    list.innerHTML = '';
+    if (!doubtHistory.length) {
+        list.innerHTML = '<div class="doubt-msg doubt-msg-ai">' + doubtWelcome() + '</div>';
+    } else {
+        doubtHistory.forEach(function (m) {
+            addDoubtMessage(m.role, doubtRender(m.content));
+        });
+    }
+    if (!doubtAskUrl()) {
+        var hint = document.createElement('div');
+        hint.className = 'doubt-offline';
+        hint.innerHTML = '<p>AI needs a network server. Run <code>node server.js</code> anywhere, then set its URL with the settings gear above.</p>';
+        list.appendChild(hint);
+    }
+}
+
+function openDoubt() {
+    doubtOpen = true;
+    var panel = $('#doubtPanel');
+    if (panel) {
+        panel.classList.add('open');
+        panel.setAttribute('aria-hidden', 'false');
+    }
+    var fab = $('#doubtFab');
+    if (fab) fab.classList.add('active');
+    renderDoubtHistory();
+    setTimeout(function () {
+        var ta = $('#doubtInput');
+        if (ta) ta.focus();
+    }, 120);
+}
+
+function closeDoubt() {
+    doubtOpen = false;
+    var panel = $('#doubtPanel');
+    if (panel) {
+        panel.classList.remove('open');
+        panel.setAttribute('aria-hidden', 'true');
+    }
+    var fab = $('#doubtFab');
+    if (fab) fab.classList.remove('active');
+}
+
+function toggleDoubt() {
+    if (doubtOpen) closeDoubt();
+    else openDoubt();
+}
+
+function finishDoubt() {
+    hideDoubtTyping();
+    setDoubtBusy(false);
+}
+
+function sendDoubt() {
+    var ta = $('#doubtInput');
+    if (!ta) return;
+    var q = ta.value.trim();
+    if (!q || doubtBusy) return;
+
+    ta.value = '';
+    if (ta.style) ta.style.height = 'auto';
+
+    addDoubtMessage('user', doubtRender(q));
+    doubtHistory.push({ role: 'user', content: q });
+
+    var url = doubtAskUrl();
+    if (!url) {
+        addDoubtMessage('ai', '<p class="doubt-error">This page can\u2019t reach an AI server on its own.</p>' +
+            '<p class="doubt-hint-text">Run <code>node server.js</code>, then open the settings gear and paste the server URL (e.g. http://192.168.1.5:8000).</p>');
+        return;
+    }
+
+    setDoubtBusy(true);
+    showDoubtTyping();
+
+    var payload = {
+        messages: [
+            { role: 'system', content: doubtContext() },
+            { role: 'user', content: q }
+        ]
+    };
+
+    function onFail(msg) {
+        addDoubtMessage('ai', '<p class="doubt-error">Sorry, I couldn\u2019t reach the AI server.</p>' +
+            '<p class="doubt-hint-text">' + doubtEscape(msg) + '</p>');
+        finishDoubt();
+    }
+
+    try {
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(function (res) {
+            if (!res.ok) return res.json().then(function (j) {
+                throw new Error(j && j.error ? String(j.error) : 'Server error ' + res.status);
+            });
+            return res.json();
+        }).then(function (j) {
+            if (j && j.ok && typeof j.text === 'string' && j.text) {
+                addDoubtMessage('ai', doubtRender(j.text));
+                doubtHistory.push({ role: 'assistant', content: j.text });
+                saveDoubtHistory();
+            } else {
+                throw new Error((j && j.error) ? String(j.error) : 'Unexpected response from server');
+            }
+            finishDoubt();
+        }, function (err) {
+            onFail(err && err.message ? err.message : 'Network error.');
+        }).catch(function (err) {
+            onFail(err && err.message ? err.message : 'Network error.');
+        });
+    } catch (e) {
+        onFail('fetch() unavailable in this environment.');
+    }
+}
+
+function clearDoubtHistory() {
+    doubtHistory = [];
+    try { storage.set(DOUBT_HISTORY_KEY, ''); } catch (e) {}
+    var list = $('#doubtMessages');
+    if (list) list.innerHTML = '<div class="doubt-msg doubt-msg-ai">' + doubtWelcome() + '</div>';
+}
+
+function toggleDoubtSettings() {
+    var row = $('#doubtSettingsRow');
+    if (!row) return;
+    row.hidden = !row.hidden;
+    if (!row.hidden) {
+        var input = $('#doubtUrlInput');
+        if (input) input.value = storage.get(DOUBT_URL_KEY) || '';
+    }
+}
+
+function doubtSaveUrl() {
+    var input = $('#doubtUrlInput');
+    if (!input) return;
+    doubtSetServerUrl(input.value.trim());
+    toggleDoubtSettings();
+    var v = String(storage.get(DOUBT_URL_KEY) || '');
+    toast(v ? 'AI server URL saved' : 'AI server URL cleared');
+    renderDoubtHistory();
+}
+
+function doubtSetServerUrl(v) {
+    try { storage.set(DOUBT_URL_KEY, String(v || '')); } catch (e) {}
+}
+
+function autoResizeDoubt() {
+    var ta = $('#doubtInput');
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 160) + 'px';
+}
+
+function bindDoubt() {
+    var fab = $('#doubtFab');
+    if (fab) fab.addEventListener('click', toggleDoubt);
+
+    var closeBtn = $('#doubtClose');
+    if (closeBtn) closeBtn.addEventListener('click', closeDoubt);
+
+    var clearBtn = $('#doubtClear');
+    if (clearBtn) clearBtn.addEventListener('click', clearDoubtHistory);
+
+    var gear = $('#doubtSettings');
+    if (gear) gear.addEventListener('click', toggleDoubtSettings);
+
+    var saveBtn = $('#doubtUrlSave');
+    if (saveBtn) saveBtn.addEventListener('click', doubtSaveUrl);
+
+    var form = $('#doubtForm');
+    if (form) form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        sendDoubt();
+    });
+
+    var ta = $('#doubtInput');
+    if (ta) {
+        ta.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendDoubt();
+            }
+        });
+        ta.addEventListener('input', autoResizeDoubt);
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && doubtOpen) closeDoubt();
+    });
 }
 
 /* -------- module: content/11-home.js -------- */

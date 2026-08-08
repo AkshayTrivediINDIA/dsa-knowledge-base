@@ -25,6 +25,7 @@ function init() {
     safe(bindCodeBlocks);
     safe(bindScroll);
     safe(renderBookmarks);
+    safe(bindDoubt);
     safe(bindHashRouter);
     renderPath(parseHashPath() || parsePath());
 }
@@ -52,6 +53,14 @@ if (typeof module !== 'undefined' && module.exports) {
         pageFile: pageFile,
         refUrl: refUrl,
         VIZ_CONFIG: VIZ_CONFIG,
-        Visualizer: Visualizer
+        Visualizer: Visualizer,
+        bindDoubt: bindDoubt,
+        openDoubt: openDoubt,
+        closeDoubt: closeDoubt,
+        sendDoubt: sendDoubt,
+        doubtRender: doubtRender,
+        doubtAskUrl: doubtAskUrl,
+        doubtSetServerUrl: doubtSetServerUrl,
+        doubtClear: clearDoubtHistory
     };
 }
