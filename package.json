@@ -1,0 +1,15 @@
+{
+  "name": "dsa-knowledge-base",
+  "version": "1.0.0",
+  "description": "DSA Knowledge Base — Ask Doubt AI tutor + static site server",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "node build.js",
+    "validate": "node validate.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
