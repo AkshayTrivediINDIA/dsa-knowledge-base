@@ -311,6 +311,7 @@ function callBackend(b, messages, opts) {
 
 function forward(messages, opts, cb) {
     const now = Date.now();
+    const deadlineAt = now + (opts.deadlineMs || 75000);
     const order = [];
     for (let i = 0; i < backends.length; i++) {
         const idx = (lastGood + i) % backends.length;
@@ -324,9 +325,23 @@ function forward(messages, opts, cb) {
 
     let attempt = 0;
     let retried = false;
+    let done = false;
     const errors = [];
 
+    function finish(e, okRes) {
+        if (done) return;
+        done = true;
+        cb(e, okRes);
+    }
+
     function next() {
+        if (Date.now() > deadlineAt) {
+            const e = new Error('AI backends took too long (over the deadline). Try again in a moment.');
+            e.attempted = errors.map((x) => x.name + (x.status ? '(' + x.status + ')' : ''));
+            e.deadline = true;
+            finish(e);
+            return;
+        }
         if (attempt >= order.length) {
             const lastErr = errors[errors.length - 1];
             let detail = 'no backends available';
@@ -337,7 +352,7 @@ function forward(messages, opts, cb) {
             }
             const e = new Error('All AI backends failed — last: ' + detail);
             e.attempted = errors.map((x) => x.name + (x.status ? '(' + x.status + ')' : ''));
-            cb(e);
+            finish(e);
             return;
         }
         const bi = order[attempt];
@@ -346,9 +361,9 @@ function forward(messages, opts, cb) {
         callBackend(b, messages, opts).then((okRes) => {
             lastGood = bi;
             downUntil[b.name] = 0;
-            cb(null, okRes);
+            finish(null, okRes);
         }).catch((err) => {
-            if (!retried && isTransient(err.status)) {
+            if (!retried && isTransient(err.status) && Date.now() <= deadlineAt) {
                 retried = true;
                 setTimeout(next, 1200);   // transient -> retry the same backend once
                 return;
@@ -481,9 +496,19 @@ const server = http.createServer((req, res) => {
                     return;
                 }
             }
-            forward(messages, { temperature: body.temperature }, (ferr, okRes) => {
+            let aborted = false;
+            const timer = setTimeout(() => {
+                if (aborted || res.writableEnded) return;
+                send(res, 504, { ok: false, error: 'AI request timed out on the server. Try again in a moment.' });
+            }, 80000);
+            const onClose = () => { aborted = true; clearTimeout(timer); };
+            res.on('close', onClose);
+            res.on('error', () => {});
+            forward(messages, { temperature: body.temperature, deadlineMs: 75000 }, (ferr, okRes) => {
+                clearTimeout(timer);
+                if (aborted || res.writableEnded) return;
                 if (ferr) {
-                    send(res, 502, {
+                    send(res, ferr.deadline ? 504 : 502, {
                         ok: false,
                         error: ferr.message,
                         backends: ferr.attempted || []

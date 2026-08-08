@@ -6011,17 +6011,37 @@ function sendDoubt() {
         finishDoubt();
     }
 
+    function readJson(res, ok) {
+        return res.text().then(function (raw) {
+            if (!raw) {
+                if (!ok) throw new Error('Server returned an empty response (HTTP ' + res.status + ').');
+                throw new Error('Server returned an empty response.');
+            }
+            try {
+                return JSON.parse(raw);
+            } catch (e) {
+                if (!ok) throw new Error('Server error ' + res.status + ' (not JSON).');
+                throw new Error('Server returned a non-JSON response.');
+            }
+        });
+    }
+
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, 100000);
+
     try {
         fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: ctrl.signal,
             body: JSON.stringify(payload)
         }).then(function (res) {
-            if (!res.ok) return res.json().then(function (j) {
+            if (!res.ok) return readJson(res, false).then(function (j) {
                 throw new Error(j && j.error ? String(j.error) : 'Server error ' + res.status);
             });
-            return res.json();
+            return readJson(res, true);
         }).then(function (j) {
+            clearTimeout(timer);
             if (j && j.ok && typeof j.text === 'string' && j.text) {
                 addDoubtMessage('ai', doubtRender(j.text));
                 doubtHistory.push({ role: 'assistant', content: j.text });
@@ -6031,11 +6051,16 @@ function sendDoubt() {
             }
             finishDoubt();
         }, function (err) {
-            onFail(err && err.message ? err.message : 'Network error.');
+            clearTimeout(timer);
+            onFail((err && err.name === 'AbortError') ? 'The AI server took too long (100s). Try again.' :
+                (err && err.message ? err.message : 'Network error.'));
         }).catch(function (err) {
-            onFail(err && err.message ? err.message : 'Network error.');
+            clearTimeout(timer);
+            onFail((err && err.name === 'AbortError') ? 'The AI server took too long (100s). Try again.' :
+                (err && err.message ? err.message : 'Network error.'));
         });
     } catch (e) {
+        clearTimeout(timer);
         onFail('fetch() unavailable in this environment.');
     }
 }
