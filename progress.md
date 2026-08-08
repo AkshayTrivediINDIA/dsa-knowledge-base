@@ -11,22 +11,23 @@
 
 ## ⏭️ RESUME HERE — Start Point for Next Session
 
-### Current Snapshot (all green, verified 2026-08-06)
+### Current Snapshot (all green, verified 2026-08-08)
 - **83-page hybrid MPA/SPA** (vanilla HTML/CSS/JS) **+ interactive visualizations**. Works as MPA over `http://` (serve `dist/`) and as a **single-file SPA** (`dist/index.standalone.html`) over `http://`, `file://` and Android `content://` — all navigation is hash-based (`#/path`), so **no web server or sibling files are required to browse the whole site**.
 - **Every program group has its own page** (`20-split-codes.js`): 49 `code/<group>` pages. Topic/interview/snippet pages keep a **code card** that routes to the code page; problem-card **View code** buttons route too. Same behaviour in MPA and standalone (shared script).
-- **Interactive visualizations (NEW — Phase 4, Stage A, all 14 topics):**
+- **Interactive visualizations (Phase 4 complete — topics 14/14 + problems 35/35):**
   - Shared GSAP engine `src/js/core/11-visualizer-engine.js` (`Visualizer` + `VizPlayer` + mounting/teardown wired into `07-router.js`; primitives: array cells, l/r pointers, sliding-window overlay, bars with labels, swap animation, second "sub" row, 2D matrix grid, vars chips, step narration, log; dark/light theming via CSS vars; respects `prefers-reduced-motion`).
-  - **GSAP 3.12.5 vendored offline** at `src/vendor/gsap.min.js` (72 KB) and bundled into `dist/script.js` inside an IIFE that invokes GSAP with a plain-object `this` (jsdom-safe; the UMD `(this||self).window =` header no longer throws in test harnesses) then copies `gsap` onto the real global.
-  - **All 14 topic pages have a runnable visualizer**: traversal, prefix-sum, difference-array, sliding-window, two-pointers, kadane, sorting (bubble/selection/insertion), binary-search, hashing, matrix (rotate), merge-intervals, dutch-national-flag, binary-search-answer, complexity — one config file each under `src/js/viz/topics/`, self-registered into `VIZ_CONFIG` (declared in `core/10-init.js`, exported for tests), each with play/pause/step/scrub/speed, custom input re-simulation, and per-page legend.
-  - Every topic's trace uses the **same example data as its page's Step-by-Step table** (asserted by `test_viz_traces.js`).
-- Build sizes: `dist/script.js` 890 KB, `dist/index.standalone.html` 966 KB, 98 static HTML pages, `dist/style.css` 55 KB.
-- `validate.js` reports: **83 pages, ALL CHECKS PASSED** (205 explain blocks, 2738 explained lines, 49 pages with program groups).
+  - **GSAP 3.12.5 vendored offline** at `src/vendor/gsap.min.js` (72 KB) and bundled into `dist/script.js` inside an IIFE that invokes GSAP with a plain-object `this` (jsdom-safe) then copies `gsap` onto the real global.
+  - **All 14 topic pages have a runnable visualizer** (traversal … complexity) under `src/js/viz/topics/`.
+  - **ALL 35 problem code pages have a runnable visualizer (NEW — Stage B):** 16 interview (`src/js/viz/problems/interview/`: twosum, buysellstock, movezeroes, majorityelement, containsduplicate, removeduplicates, subarraysumk, longestsubstr, maxprodsubarray, mergeintervals, findanagrams, splitarray, firstmissing, trappingwater, slidingwindowmax, containerwater), 8 LeetCode (`src/js/viz/problems/leetcode/`: removeelement, plusone, mergesorted, missingnumber, rangesum, intersection, disappeared, pivotindex), 11 snippets (`src/js/viz/problems/snippets/`: sumarray, reverse, prefixsum, diffarray, maxsubarray, windowmax, twopointer, binsearch, freqcount, selsort, intervalmerge). Each config is keyed by the **bare group name** so `code/<group>` picks it up via the `code/`-strip lookup; several snippet/LC vizzes reuse a topic simulate function with the snippet's own example data as `defaultState`.
+  - Every problem trace uses the **same example data as its code page's `~~~io` box** (asserted by `test_viz_traces.js`).
+- Build sizes: `dist/script.js` 979 KB, `dist/index.standalone.html` 1055 KB, 98 static HTML pages, `dist/style.css` 55 KB.
+- `validate.js` reports: **83 pages, ALL CHECKS PASSED** (245 explain blocks, 3110 explained lines, 49 pages with program groups).
 
 ### Test suites (all green, `/tmp/opencode/`)
 - `validate.js` — 83 pages, ALL CHECKS PASSED.
 - `test_app.js` (83 pages), `test_dom.js`, `test_mpa.js` (98 pages boot), `test_standalone.js` (content://), `test_android.js` (hostile file://).
-- **Viz suites**: `test_viz.js` (two-pointers DOM: mount/step/scrub/apply/play), `test_viz_topics.js` (all 14 topic pages mount + step to last frame), `test_viz_traces.js` (every simulation's final result asserted), `test_standalone_viz.js` (standalone mounts a viz via hash nav).
-- **Run command**: `node build.js && node validate.js && node /tmp/opencode/test_app.js && node /tmp/opencode/test_viz_traces.js && node /tmp/opencode/test_viz_topics.js && node /tmp/opencode/test_dom.js && node /tmp/opencode/test_mpa.js && node /tmp/opencode/test_standalone.js && node /tmp/opencode/test_android.js` (test_mpa needs ~2.5 min; test_dom/standalone/android ~1 min each — run them one at a time).
+- **Viz suites**: `test_viz.js` (two-pointers DOM), `test_viz_topics.js` (14 topic pages mount + step), `test_viz_problems.js` (35 problem code pages mount + step to last frame), `test_viz_traces.js` (14 topic + 35 problem simulations' final results asserted), `test_standalone_viz.js` (standalone mounts a viz via hash nav).
+- **Run command**: `node build.js && node validate.js && node /tmp/opencode/test_app.js && node /tmp/opencode/test_viz_traces.js && node /tmp/opencode/test_viz_topics.js && node /tmp/opencode/test_viz_problems.js && node /tmp/opencode/test_viz.js && node /tmp/opencode/test_dom.js && node /tmp/opencode/test_mpa.js && node /tmp/opencode/test_standalone.js && node /tmp/opencode/test_android.js` (test_mpa ~2.5 min, test_viz_problems ~2 min, test_dom/standalone/android ~1 min each — run one at a time).
 
 ### Serving over HTTP
 ```
@@ -53,7 +54,7 @@ MPA pages (`index.html` + sibling `*.html`) need the whole `dist/` folder served
 - Viz configs: one file per page under `src/js/viz/**`, self-registered into `VIZ_CONFIG` (container in `core/10-init.js`), `simulate(state, params) => frames`, engine primitives in `core/11-visualizer-engine.js`, `.viz` styles in `src/style.css`. Keep frame traces aligned with the page's Step-by-Step table.
 
 ### Next stages in order
-1. **Phase 4, Stage B (problems)** — one viz config per problem page: interview problems first (16), then LeetCode (8), then snippets (11). Code pages already inherit their topic's viz (the lookup strips `code/`), so only problem/snippet pages need new files.
+1. ~~**Phase 4, Stage B (problems)** — one viz config per problem page: interview problems first (16), then LeetCode (8), then snippets (11).~~ **✅ DONE (2026-08-08): 35/35 problem code pages animated.**
 2. **Phase 4, Stage C (AI "Ask Doubt" panel)** — OpenAI-compatible endpoint (keys stay server-side in `server.js`, stdlib proxy to dodge CORS).
 3. **Phase 5 (ship)** — device-test on Android Chrome (`dist/index.standalone.html` via file manager `content://`, and via an HTTP file-server app), then ship the standalone.
 4. **Post-ship (P2/P3 backlog)** — reading time estimator, prev/next nav, more DSA topics (Linked List, Stack, Queue, Tree, Graph, DP, Greedy), problem difficulty filter, tag filtering, PWA manifest / service worker / system theme auto-detect. (Featured LeetCode/Codeforces problems w/ solutions is optional Stage C tail.)
@@ -97,7 +98,59 @@ Each registers `VIZ_CONFIG['topics/<name>']` (plus a bare `<name>` alias for the
 - Suites: `test_app` ✓, `test_viz_traces` ✓ (14 traces), `test_viz_topics` ✓ (14 pages), `test_viz` ✓, `test_dom` ✓, `test_mpa` ✓ (98 pages), `test_standalone` ✓, `test_android` ✓, `test_standalone_viz` ✓.
 
 ### Next
-- **Stage B (problems):** one viz per problem page — interview (16) → LeetCode (8) → snippets (11). Code pages already inherit topic vizes.
+- ~~**Stage B (problems):** one viz per problem page — interview (16) → LeetCode (8) → snippets (11). Code pages already inherit topic vizes.~~ ✅ **DONE below (2026-08-08).**
+
+---
+
+## Phase 4, Stage B — Interactive Visualizations for every problem (35/35) ✅
+
+### Config layout (`src/js/viz/problems/`, 35 files in 3 folders)
+Each registers `VIZ_CONFIG['<group>']` with the **bare group name** as the key, so the router's `code/`-strip lookup (`vizInitForPage` → `VIZ_CONFIG[path.slice(5)]`) mounts it on the matching `code/<group>` page. Configs mirror the topic pattern (`title`, `family`, `defaultState`, `inputs`, `legend`, `stepMs`, `simulate`); several reuse a topic simulate with the snippet/LC example as `defaultState` (no duplicate logic).
+
+### Interview (16) — `src/js/viz/problems/interview/`
+| Group | Algorithm animated | Sample outcome (asserted) |
+|---|---|---|
+| twosum | hashmap complement lookup + growing "seen" sub-row | `2 + 7 = 9` → `[0,1]` |
+| buysellstock | one-pass min-so-far profit tracker | max profit 5 |
+| movezeroes | write-pointer stable partition with swaps | `[1,3,12,0,0]` |
+| majorityelement | Boyer–Moore candidate/count votes | majority 3 |
+| containsduplicate | hashset membership, flashes the dup pair | true |
+| removeduplicates | in-place write-pointer on sorted input | 3 unique `[0,1,2]` |
+| subarraysumk | prefix-sum counter map, match closes subarray | 2 |
+| longestsubstr | sliding window + char-set, best-length tracking | 3 |
+| maxprodsubarray | Kadane with curMax+curMin (negative×negative) | 6 |
+| mergeintervals | sort by start, merge overlaps (shared frames) | `[1,6] [8,10] [15,18]` |
+| findanagrams | fixed-size window char counts vs p | `[0, 6]` |
+| splitarray | binary-search-answer greedy feasibility (shared) | 18 |
+| firstmissing | cycle placement v→v-1 by swaps | 2 |
+| trappingwater | two pointers + side maxima, water-per-bar sub-row | 6 |
+| slidingwindowmax | monotonic deque (head = window max) + deque sub-row | `[3,3,5,5,6,7]` |
+| containerwater | two pointers, advance the shorter line | 49 |
+
+### LeetCode (8) — `src/js/viz/problems/leetcode/`
+| Group | Algorithm animated | Sample outcome (asserted) |
+|---|---|---|
+| removeelement | in-place write-pointer filter | `[2, 2]` |
+| plusone | carry propagation from the least-significant digit | `[1, 2, 4]` |
+| mergesorted | merge a+b backwards into the padded tail | `[1,2,2,3,5,6]` |
+| missingnumber | XOR trick (index ^ value pairs cancel) | 2 |
+| rangesum | prefix build + O(1) range query | 1 |
+| intersection | hashset lookup + dedupe result | `[2]` |
+| disappeared | in-place negation marking, positives = missing | `[5, 6]` |
+| pivotindex | left == right via total − left − a[i] | index 3 |
+
+### Snippets (11) — `src/js/viz/problems/snippets/`
+`sumarray` (running total), `reverse` (two-pointer swaps), `prefixsum` (shared prefix frames), `diffarray` (shared diff frames), `maxsubarray` (shared kadane frames), `windowmax` (shared sliding-window frames), `twopointer` (shared two-pointers frames), `binsearch` (shared binary-search frames), `freqcount` (shared hashing frames), `selsort` (shared sorting frames, algo=selection), `intervalmerge` (shared merge-intervals frames). All default states match each snippet's `~~~io` example.
+
+### Verification (all green)
+- Build: `dist/script.js` 979 KB, `index.standalone.html` 1055 KB, 98 HTML pages.
+- `validate.js` → ALL CHECKS PASSED (83 pages, 245 explain blocks, 3110 lines).
+- New `test_viz_problems.js` — all 35 `code/<group>` pages mount a `.viz` and step every frame to the end (no console errors).
+- `test_viz_traces.js` extended to 49 checks (14 topics + 16 interview + 8 LeetCode + 11 snippets + code-page lookup keys).
+- Full suite (10 scripts) all green.
+
+### Next
+- **Stage C (AI "Ask Doubt" panel)**, then **Phase 5 (ship)**. See "Next stages in order" above.
 
 
 
@@ -502,11 +555,11 @@ Sources woven into History/Origin sections: binary search = Mauchly 1946 Moore S
 
 1. **[DONE] Phase 3 Stage B — content build:** all 14 array topics converted to the full template; merged Snippets page expanded to 11 groups. Verified green (130 blocks / 1842 lines / 16 io pages).
 2. **[DONE] Phase 4 Stage A — interactive visualizations for all 14 topics:** GSAP engine + one config per topic, mount/teardown wired into the router, vendored offline GSAP, 14 traces asserted correct, standalone carries the vizes too. (2026-08-06.)
-3. **Phase 4 Stage B — problems:** one viz per problem page — interview (16) → LeetCode (8) → snippets (11). Code pages already inherit their topic's viz.
+3. **[DONE] Phase 4 Stage B — problems:** one viz per problem page — interview (16) + LeetCode (8) + snippets (11) = 35 code-page vizzes, all traces match each `~~~io` example, `test_viz_problems.js` steps every frame. (2026-08-08.)
 4. **Phase 4 Stage C — AI "Ask Doubt" panel:** OpenAI-compatible endpoint (`https://vedalabs-vedika-advanced-ai-4-1-flash.hf.space/v1/chat/completions`), keys server-side in a stdlib `server.js` proxy to dodge CORS.
 5. **Phase 5 — ship:** re-verify all suites, device-test on Android Chrome, ship `dist/index.standalone.html`.
 6. **Post-ship (P2/P3 backlog):** reading time, prev/next nav, more DSA topics (Linked List, Stack, Queue, Tree, Graph, DP, Greedy), problem difficulty filter, tag filtering, PWA manifest / service worker / theme auto-detect.
 
 ---
 
-*Last Updated: 2026-08-06 (Phase 4 Stage A complete — GSAP visualizer engine + all 14 topic animations, traces asserted, standalone includes vizes. **Next session: Phase 4 Stage B — viz configs for the 16 interview problem pages in `15-interview.js`, see "RESUME HERE" at top.**)*
+*Last Updated: 2026-08-08 (Phase 4 complete — 14 topic + 35 problem visualizations, 49 traces asserted, standalone carries all vizes. **Next session: Phase 4 Stage C — AI "Ask Doubt" panel; see "RESUME HERE" at top.**)*

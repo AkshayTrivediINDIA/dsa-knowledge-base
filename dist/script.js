@@ -14662,6 +14662,2041 @@ DB["learn/references"] = {
    it exists before the module.exports and is shared app-wide.
    ============================================================ */
 
+/* -------- module: viz/problems/interview/01-twosum.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/interview/01-twosum
+   Two Sum: walk left to right, for each value look up the
+   complement (target - value) in a hashmap of value -> index.
+   A "seen" sub-row shows the map growing; the winning pair
+   flashes found. Mounts on code/twosum.
+   ============================================================ */
+
+function vizIvTwoSumFrames(state) {
+    var arr = state.array || [];
+    var target = state.target;
+    var n = arr.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: arr, highlight: {}, vars: {}, sub: null };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array — nothing to search.', arr: [], vars: {}, sub: null }); return frames; }
+
+    var seen = {};      /* value -> index */
+    var seenKeys = [];
+    var seenIdx = [];
+
+    push('Walk the array. For each value v, look up complement = target - v = ' + target + ' - v in the hashmap. O(n) time.',
+        { vars: { i: 0, target: target, complement: '-' }, sub: { label: 'seen { value \u2192 index }', keys: [], cells: [] }, log: 'init' });
+
+    for (var i = 0; i < n; i++) {
+        var comp = target - arr[i];
+        var hCur = {};
+        hCur[i] = 'active';
+
+        if (seen[comp] !== undefined) {
+            var j = seen[comp];
+            var hFound = {};
+            hFound[j] = 'found';
+            hFound[i] = 'found';
+            push('FOUND! a[' + j + '] = ' + arr[j] + ' and a[' + i + '] = ' + arr[i] + ': ' + arr[j] + ' + ' + arr[i] + ' = ' + target,
+                { highlight: hFound, vars: { i: i, j: j, target: target, complement: comp }, sub: { label: 'seen { value \u2192 index }', keys: seenKeys.slice(), cells: seenIdx.slice(), highlight: (function () { var x = {}; for (var s = 0; s < seenKeys.length; s++) if (seenKeys[s] === comp) x[s] = 'found'; return x; })() }, found: [j, i], log: 'found' });
+            return frames;
+        }
+
+        if (seen[arr[i]] === undefined) {
+            seen[arr[i]] = i;
+            seenKeys.push(arr[i]);
+            seenIdx.push(i);
+        }
+        push('i = ' + i + ': complement of ' + arr[i] + ' is ' + comp + ' \u2014 not seen yet. Store a[' + i + '] = ' + arr[i] + ' \u2192 index ' + i + '.',
+            { highlight: hCur, vars: { i: i, target: target, complement: comp }, sub: { label: 'seen { value \u2192 index }', keys: seenKeys.slice(), cells: seenIdx.slice(), highlight: (function () { var x = {}; x[seenKeys.length - 1] = 'active'; return x; })() } });
+    }
+
+    push('No two values sum to ' + target + '.', { vars: { target: target }, sub: { label: 'seen { value \u2192 index }', keys: seenKeys.slice(), cells: seenIdx.slice() }, log: 'none' });
+    return frames;
+}
+
+VIZ_CONFIG['twosum'] = {
+    title: 'Two Sum — find two indices that add up to the target',
+    family: 'twosum',
+    defaultState: { array: [2, 7, 11, 15], target: 9 },
+    inputs: [
+        { key: 'array', label: 'Array', value: '2, 7, 11, 15', placeholder: '2, 7, 11, 15', parse: vizParseList },
+        { key: 'target', label: 'Target', value: '9', placeholder: '9', parse: function (s) { return parseInt(s, 10) || 0; } }
+    ],
+    legend: [
+        { label: 'current value', color: 'vz-active' },
+        { label: 'matched pair', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizIvTwoSumFrames
+};
+
+/* -------- module: viz/problems/interview/02-buysellstock.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/interview/02-buysellstock
+   Best Time to Buy & Sell: one pass. Track the cheapest price
+   seen so far; at each day compute profit = price - minSoFar
+   and keep the best. Mounts on code/buysellstock.
+   ============================================================ */
+
+function vizIvBuySellFrames(state) {
+    var prices = state.prices || [];
+    var n = prices.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: prices, highlight: {}, vars: {} };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array — nothing to trade.', arr: [], vars: {} }); return frames; }
+
+    var minSoFar = prices[0];
+    var minIdx = 0;
+    var best = 0;
+    var buyI = 0, sellI = 0;
+
+    push('One pass: keep the cheapest price seen so far (buy low). At each day compute profit vs that low. O(n).',
+        { highlight: { 0: 'left' }, vars: { day: 0, min: minSoFar, profit: 0, best: 0 }, log: 'init' });
+
+    for (var i = 1; i < n; i++) {
+        var profit = prices[i] - minSoFar;
+        var h = {};
+        h[minIdx] = 'left';
+        h[i] = 'active';
+        if (prices[i] < minSoFar) {
+            h[minIdx] = 'dim';
+            minSoFar = prices[i];
+            minIdx = i;
+            h[i] = 'left';
+            push('Day ' + i + ': price ' + prices[i] + ' is a new low \u2192 buy here instead. min so far = ' + minSoFar + '.',
+                { highlight: h, vars: { day: i, min: minSoFar, profit: 0, best: best } });
+        } else if (profit > best) {
+            best = profit;
+            buyI = minIdx; sellI = i;
+            var h2 = {};
+            h2[buyI] = 'found';
+            h2[sellI] = 'found';
+            push('Day ' + i + ': sell at ' + prices[i] + ' \u2192 profit ' + profit + ' is a NEW BEST. (buy day ' + buyI + ', sell day ' + sellI + ')',
+                { highlight: h2, vars: { day: i, min: minSoFar, profit: profit, best: best }, log: 'new best' });
+        } else {
+            push('Day ' + i + ': price ' + prices[i] + ', profit vs ' + minSoFar + ' = ' + profit + ' \u2014 not better than ' + best + '.',
+                { highlight: h, vars: { day: i, min: minSoFar, profit: profit, best: best } });
+        }
+    }
+
+    var hf = {};
+    hf[buyI] = 'found';
+    hf[sellI] = 'found';
+    push('Maximum profit = ' + best + (best > 0 ? ' (buy day ' + buyI + ' at ' + prices[buyI] + ', sell day ' + sellI + ' at ' + prices[sellI] + ')' : ' \u2014 prices never go up') + '.',
+        { highlight: hf, vars: { best: best }, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['buysellstock'] = {
+    title: 'Best Time to Buy & Sell Stock — one-pass min-so-far',
+    family: 'buysellstock',
+    defaultState: { prices: [7, 1, 5, 3, 6, 4] },
+    inputs: [
+        { key: 'prices', label: 'Prices', value: '7, 1, 5, 3, 6, 4', placeholder: '7, 1, 5, 3, 6, 4', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'buy (min so far)', color: 'vz-left' },
+        { label: 'examining day', color: 'vz-active' },
+        { label: 'best buy/sell pair', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizIvBuySellFrames
+};
+
+/* -------- module: viz/problems/interview/03-movezeroes.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/interview/03-movezeroes
+   Move Zeroes: two pointers. read scans forward; write points at
+   the next slot for a non-zero. When read finds a non-zero, swap
+   it into the write slot so all zeroes slide right in order.
+   Mounts on code/movezeroes.
+   ============================================================ */
+
+function vizIvMoveZeroesFrames(state) {
+    var a = (state.array || []).slice();
+    var n = a.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: a.slice(), highlight: {}, vars: {}, sub: null };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array.', arr: [], vars: {} }); return frames; }
+
+    var w = 0;
+
+    push('Scan with read. The write pointer w marks the next slot for a non-zero value. O(n), stable order preserved.',
+        { highlight: { 0: 'active' }, vars: { r: 0, w: w }, sub: { label: 'growing non-zero prefix', keys: [], cells: [] }, log: 'init' });
+
+    for (var r = 0; r < n; r++) {
+        if (a[r] !== 0) {
+            if (r !== w) {
+                push('a[' + r + '] = ' + a[r] + ' \u2260 0 \u2192 swap into write slot ' + w + '. (a[' + w + '] = ' + a[w] + ' moves right)',
+                    { swap: [w, r], highlight: (function () { var h = {}; h[w] = 'left'; h[r] = 'active'; return h; })(), vars: { r: r, w: w }, sub: { label: 'non-zero prefix', keys: a.slice(0, w + 1), cells: a.slice(0, w + 1) } });
+                var t = a[w]; a[w] = a[r]; a[r] = t;
+            } else {
+                push('a[' + r + '] = ' + a[r] + ' already in place (r = w).',
+                    { highlight: (function () { var h = {}; h[r] = 'left'; return h; })(), vars: { r: r, w: w } });
+            }
+            w++;
+        } else {
+            push('a[' + r + '] = 0 \u2192 skip; write stays at ' + w + '.',
+                { highlight: (function () { var h = {}; h[r] = 'active'; h[w] = 'left'; return h; })(), vars: { r: r, w: w } });
+        }
+    }
+
+    push('Done \u2014 all zeroes are at the end: [' + a.join(', ') + '].',
+        { vars: { w: w }, sub: { label: 'non-zero prefix', keys: a.slice(0, w), cells: a.slice(0, w) }, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['movezeroes'] = {
+    title: 'Move Zeroes — stable in-place partition',
+    family: 'movezeroes',
+    defaultState: { array: [0, 1, 0, 3, 12] },
+    inputs: [
+        { key: 'array', label: 'Array', value: '0, 1, 0, 3, 12', placeholder: '0, 1, 0, 3, 12', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'write slot', color: 'vz-left' },
+        { label: 'reading', color: 'vz-active' },
+        { label: 'non-zero prefix', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizIvMoveZeroesFrames
+};
+
+/* -------- module: viz/problems/interview/04-majorityelement.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/interview/04-majorityelement
+   Majority Element (Boyer-Moore): a candidate and a count. When
+   the current value equals the candidate, count++; otherwise
+   count--. When count hits 0, adopt the current value. The value
+   left standing is the majority. Mounts on code/majorityelement.
+   ============================================================ */
+
+function vizIvMajorityFrames(state) {
+    var a = state.array || [];
+    var n = a.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: a, highlight: {}, vars: {} };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array — no majority.', arr: [], vars: {} }); return frames; }
+
+    var cand = a[0];
+    var count = 1;
+
+    push('Boyer-Moore: keep a candidate and a vote count. Equal values raise the count, different values lower it; at count 0, switch candidate. The surviving value is the majority.',
+        { highlight: { 0: 'active' }, vars: { i: 0, cand: cand, count: count }, log: 'init' });
+
+    for (var i = 1; i < n; i++) {
+        var h = {};
+        h[i] = 'active';
+        if (a[i] === cand) {
+            count++;
+            h[i] = 'found';
+            push('i = ' + i + ': a[' + i + '] = ' + a[i] + ' equals candidate ' + cand + ' \u2192 count = ' + count + '.',
+                { highlight: h, vars: { i: i, cand: cand, count: count } });
+        } else {
+            count--;
+            h[i] = 'compare';
+            if (count === 0) {
+                cand = a[i];
+                count = 1;
+                h[i] = 'left';
+                push('i = ' + i + ': a[' + i + '] = ' + a[i] + ' \u2260 ' + cand + ' \u2014 count drops to 0 \u2192 adopt ' + a[i] + ' as the new candidate.',
+                    { highlight: h, vars: { i: i, cand: cand, count: count }, log: 'switch' });
+            } else {
+                push('i = ' + i + ': a[' + i + '] = ' + a[i] + ' \u2260 candidate ' + cand + ' \u2192 count = ' + count + '.',
+                    { highlight: h, vars: { i: i, cand: cand, count: count } });
+            }
+        }
+    }
+
+    var hf = {};
+    for (var j = 0; j < n; j++) if (a[j] === cand) hf[j] = 'found';
+    push('Majority element = ' + cand + ' (Boyer-Moore, O(n) time, O(1) space).',
+        { highlight: hf, vars: { cand: cand, count: count }, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['majorityelement'] = {
+    title: 'Majority Element — Boyer-Moore vote counter',
+    family: 'majorityelement',
+    defaultState: { array: [3, 3, 4] },
+    inputs: [
+        { key: 'array', label: 'Array', value: '3, 3, 4', placeholder: '3, 3, 4', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'candidate', color: 'vz-left' },
+        { label: 'matching vote', color: 'vz-found' },
+        { label: 'opposing vote', color: 'vz-compare' }
+    ],
+    stepMs: 1150,
+    simulate: vizIvMajorityFrames
+};
+
+/* -------- module: viz/problems/interview/05-containsduplicate.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/interview/05-containsduplicate
+   Contains Duplicate: insert every value into a hashset; the
+   moment an insert finds the value already present, the answer
+   is true. Mounts on code/containsduplicate.
+   ============================================================ */
+
+function vizIvContainsDupFrames(state) {
+    var nums = state.array || [];
+    var n = nums.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: nums, highlight: {}, vars: {}, sub: null };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array — no duplicates.', arr: [], vars: {}, sub: null }); return frames; }
+
+    var seen = {};      /* set of values seen */
+    var setList = [];
+
+    push('Insert each value into a hashset. If a value is already present when we try to add it, there is a duplicate. O(n).',
+        { highlight: { 0: 'active' }, vars: { i: 0 }, sub: { label: 'hashset', keys: [], cells: [] }, log: 'init' });
+
+    for (var i = 0; i < n; i++) {
+        var h = {};
+        h[i] = 'active';
+        if (seen[nums[i]]) {
+            var h2 = {};
+            h2[i] = 'found';
+            push('a[' + i + '] = ' + nums[i] + ' is ALREADY in the set \u2192 contains duplicate = true.',
+                { highlight: h2, vars: { i: i, result: 'true' }, sub: { label: 'hashset', keys: setList.slice(), cells: setList.slice() }, found: [i], log: 'found' });
+            return frames;
+        }
+        seen[nums[i]] = true;
+        setList.push(nums[i]);
+        push('a[' + i + '] = ' + nums[i] + ' \u2014 not seen before, add to set.',
+            { highlight: h, vars: { i: i, result: 'false so far' }, sub: { label: 'hashset', keys: setList.slice(), cells: setList.slice(), highlight: (function () { var x = {}; x[setList.length - 1] = 'active'; return x; })() } });
+    }
+
+    push('Scanned everything \u2014 no duplicates. result = false.',
+        { vars: { result: 'false' }, sub: { label: 'hashset', keys: setList.slice(), cells: setList.slice() }, log: 'none' });
+
+    return frames;
+}
+
+VIZ_CONFIG['containsduplicate'] = {
+    title: 'Contains Duplicate — hashset membership',
+    family: 'containsduplicate',
+    defaultState: { array: [1, 2, 3, 1] },
+    inputs: [
+        { key: 'array', label: 'Array', value: '1, 2, 3, 1', placeholder: '1, 2, 3, 1', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'examining value', color: 'vz-active' },
+        { label: 'duplicate found', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizIvContainsDupFrames
+};
+
+/* -------- module: viz/problems/interview/06-removeduplicates.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/interview/06-removeduplicates
+   Remove Duplicates from a SORTED array, in place. read scans;
+   write tracks the next distinct slot. When a[read] differs from
+   the last written value a[write-1], copy it forward and advance.
+   The sub-row shows the deduplicated prefix.
+   Mounts on code/removeduplicates.
+   ============================================================ */
+
+function vizIvRemoveDupFrames(state) {
+    var a = (state.array || []).slice();
+    var n = a.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: a.slice(), highlight: {}, vars: {}, sub: null };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array — 0 unique values.', arr: [], vars: {}, sub: null }); return frames; }
+
+    var w = 1;
+
+    push('Sorted input. read scans forward; write marks where the next distinct value goes. a[0] is always kept. O(n).',
+        { highlight: { 0: 'found' }, vars: { r: 0, w: 0 }, sub: { label: 'unique prefix', keys: [a[0]], cells: [a[0]] }, log: 'init' });
+
+    for (var r = 1; r < n; r++) {
+        var last = a[w - 1];
+        var h = {};
+        h[w - 1] = 'left';
+        h[r] = 'active';
+        if (a[r] !== last) {
+            a[w] = a[r];
+            var hw = {};
+            hw[w] = 'found';
+            hw[r] = 'found';
+            push('a[' + r + '] = ' + a[r] + ' \u2260 last unique ' + last + ' \u2192 copy into slot ' + w + ', write advances.',
+                { highlight: hw, vars: { r: r, w: w }, sub: { label: 'unique prefix', keys: a.slice(0, w + 1), cells: a.slice(0, w + 1), highlight: (function () { var x = {}; x[w] = 'active'; return x; })() }, log: 'new distinct' });
+            w++;
+        } else {
+            push('a[' + r + '] = ' + a[r] + ' equals last unique ' + last + ' \u2192 skip (duplicate).',
+                { highlight: h, vars: { r: r, w: w } });
+        }
+    }
+
+    push('Done \u2014 ' + w + ' unique values, array prefix = [' + a.slice(0, w).join(', ') + '].',
+        { vars: { k: w }, sub: { label: 'unique prefix', keys: a.slice(0, w), cells: a.slice(0, w), highlight: (function () { var x = {}; for (var i = 0; i < w; i++) x[i] = 'found'; return x; })() }, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['removeduplicates'] = {
+    title: 'Remove Duplicates from Sorted Array — in-place write pointer',
+    family: 'removeduplicates',
+    defaultState: { array: [0, 0, 1, 1, 1, 2] },
+    inputs: [
+        { key: 'array', label: 'Array (sorted)', value: '0, 0, 1, 1, 1, 2', placeholder: '0, 0, 1, 1, 1, 2', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'last unique', color: 'vz-left' },
+        { label: 'reading', color: 'vz-active' },
+        { label: 'unique prefix', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizIvRemoveDupFrames
+};
+
+/* -------- module: viz/problems/interview/07-subarraysumk.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/interview/07-subarraysumk
+   Subarray Sum Equals K: running prefix sum + a hashmap counting
+   how many times each prefix sum has occurred. For each position,
+   count += map[prefix - k]. The sub-row shows the prefix-sum
+   counter map. Mounts on code/subarraysumk.
+   ============================================================ */
+
+function vizIvSubarraySumKFrames(state) {
+    var nums = state.array || [];
+    var k = state.k;
+    var n = nums.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: nums, highlight: {}, vars: {}, sub: null };
+        for (var kk in extra) f[kk] = extra[kk];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array — 0 subarrays.', arr: [], vars: {}, sub: null }); return frames; }
+
+    var map = { 0: 1 };   /* prefix sum -> how many times seen */
+    var prefix = 0;
+    var count = 0;
+    var mapKeys = [0], mapVals = [1];
+
+    push('Count subarrays that sum to ' + k + '. Keep prefix sums in a counter map: when prefix - k was seen before, each such earlier prefix closes a valid subarray. O(n).',
+        { vars: { i: 0, prefix: 0, k: k, count: 0 }, sub: { label: 'prefix-sum counter', keys: mapKeys.slice(), cells: mapVals.slice() }, log: 'init' });
+
+    for (var i = 0; i < n; i++) {
+        prefix += nums[i];
+        var need = prefix - k;
+        var add = map[need] || 0;
+        var h = {};
+        h[i] = 'active';
+        if (add > 0) {
+            var h2 = {};
+            h2[i] = 'found';
+            push('i = ' + i + ': prefix = ' + prefix + '. prefix - k = ' + need + ' seen ' + add + ' time(s) \u2192 ' + add + ' subarray(s) end here. total = ' + (count + add) + '.',
+                { highlight: h2, vars: { i: i, prefix: prefix, need: need, count: count + add }, sub: { label: 'prefix-sum counter', keys: mapKeys.slice(), cells: mapVals.slice(), highlight: (function () { var x = {}; for (var s = 0; s < mapKeys.length; s++) if (mapKeys[s] === need) x[s] = 'found'; return x; })() }, log: 'match' });
+        } else {
+            push('i = ' + i + ': prefix = ' + prefix + '. prefix - k = ' + need + ' not seen \u2014 0 new subarrays.',
+                { highlight: h, vars: { i: i, prefix: prefix, need: need, count: count }, sub: { label: 'prefix-sum counter', keys: mapKeys.slice(), cells: mapVals.slice() } });
+        }
+        count += add;
+        map[prefix] = (map[prefix] || 0) + 1;
+        mapKeys.push(prefix);
+        mapVals.push(map[prefix]);
+    }
+
+    push('Total subarrays summing to ' + k + ' = ' + count + '.',
+        { vars: { count: count }, sub: { label: 'prefix-sum counter', keys: mapKeys.slice(), cells: mapVals.slice() }, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['subarraysumk'] = {
+    title: 'Subarray Sum Equals K — prefix-sum counter map',
+    family: 'subarraysumk',
+    defaultState: { array: [1, 1, 1], k: 2 },
+    inputs: [
+        { key: 'array', label: 'Array', value: '1, 1, 1', placeholder: '1, 1, 1', parse: vizParseList },
+        { key: 'k', label: 'Target sum k', value: '2', placeholder: '2', parse: function (s) { return parseInt(s, 10) || 0; } }
+    ],
+    legend: [
+        { label: 'current index', color: 'vz-active' },
+        { label: 'closes a valid subarray', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizIvSubarraySumKFrames
+};
+
+/* -------- module: viz/problems/interview/08-longestsubstr.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/interview/08-longestsubstr
+   Longest Substring Without Repeating Characters. Sliding window
+   [l..r] with a char-set (or last-seen index map). Growing the
+   window rightward; when a char repeats, jump l past its previous
+   occurrence. Mounts on code/longestsubstr.
+   ============================================================ */
+
+function vizIvLongestSubstrFrames(state) {
+    var s = state.s || '';
+    var chars = String(s).split('');
+    var n = chars.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: chars, highlight: {}, vars: {}, window: null };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty string — length 0.', arr: [], vars: {} }); return frames; }
+
+    var lastSeen = {};   /* char -> latest index */
+    var l = 0;
+    var best = 0, bestL = 0, bestR = 0;
+
+    push('Sliding window [l..r]. For each new char, if it appeared at index \u2265 l, shrink l past it; otherwise the window grows. Track the best length.',
+        { vars: { l: l, r: 0, len: 1, best: 1 }, window: { start: 0, end: 0, label: 'window' }, log: 'init' });
+
+    for (var r = 0; r < n; r++) {
+        var c = chars[r];
+        var h = {};
+        h[r] = 'active';
+        if (lastSeen[c] !== undefined && lastSeen[c] >= l) {
+            var oldL = l;
+            l = lastSeen[c] + 1;
+            push('char \u201c' + c + '\u201d at ' + r + ' repeats at index ' + lastSeen[c] + ' \u2192 move l from ' + oldL + ' to ' + l + '.',
+                { vars: { l: l, r: r, len: r - l + 1, best: best }, window: { start: l, end: r, label: 'window' }, log: 'shrink' });
+        }
+        lastSeen[c] = r;
+        var len = r - l + 1;
+        if (len > best) { best = len; bestL = l; bestR = r; }
+        var hl = {};
+        hl[l] = 'left';
+        hl[r] = 'active';
+        push('r = ' + r + ': window [' + l + '..' + r + '] = \u201c' + chars.slice(l, r + 1).join('') + '\u201d, length ' + len + (len === best ? '  \u2192 NEW BEST' : '') + '.',
+            { highlight: hl, vars: { l: l, r: r, len: len, best: best }, window: { start: l, end: r, label: 'window' }, log: len === best ? 'new best' : 'step' });
+    }
+
+    var hf = {};
+    for (var i = bestL; i <= bestR; i++) hf[i] = 'found';
+    push('Longest substring without repeating characters = ' + best + ' (\u201c' + chars.slice(bestL, bestR + 1).join('') + '\u201d).',
+        { highlight: hf, vars: { best: best }, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['longestsubstr'] = {
+    title: 'Longest Substring Without Repeating Characters — sliding window',
+    family: 'longestsubstr',
+    defaultState: { s: 'abcabcbb' },
+    inputs: [
+        { key: 's', label: 'String', value: 'abcabcbb', placeholder: 'abcabcbb', parse: function (str) { return String(str || ''); } }
+    ],
+    legend: [
+        { label: 'window start', color: 'vz-left' },
+        { label: 'current char', color: 'vz-active' },
+        { label: 'best substring', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizIvLongestSubstrFrames
+};
+
+/* -------- module: viz/problems/interview/09-maxprodsubarray.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/interview/09-maxprodsubarray
+   Maximum Product Subarray (Kadane variant). Because negatives
+   flip signs, track BOTH maxEndingHere and minEndingHere; the max
+   may come from the negative product of a min. Mounts on
+   code/maxprodsubarray.
+   ============================================================ */
+
+function vizIvMaxProdFrames(state) {
+    var nums = state.array || [];
+    var n = nums.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: nums, highlight: {}, vars: {}, window: null };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array — max product 0.', arr: [], vars: {} }); return frames; }
+
+    var curMax = nums[0], curMin = nums[0], best = nums[0];
+    var winL = 0, winR = 0;
+
+    push('Kadane with two states: curMax = max product ending here, curMin = min product ending here (a negative times a negative can be positive).',
+        { vars: { i: 0, curMax: curMax, curMin: curMin, best: best }, window: { start: 0, end: 0, label: 'best' }, log: 'init' });
+
+    for (var i = 1; i < n; i++) {
+        var v = nums[i];
+        var a = curMax * v;
+        var b = curMin * v;
+        var newMax = Math.max(v, a, b);
+        var newMin = Math.min(v, a, b);
+        var h = {};
+        h[i] = 'active';
+        var restart = newMax === v;
+        if (restart) { winL = i; winR = i; } else { winR = i; }
+        push('i = ' + i + ': v = ' + v + '. curMax = max(' + v + ', ' + curMax + '\u00b7' + v + ', ' + curMin + '\u00b7' + v + ') = ' + newMax + (restart ? '  \u2192 restart subarray' : '') + (newMax > best ? '  \u2192 NEW BEST' : ''),
+            { highlight: h, vars: { i: i, curMax: newMax, curMin: newMin, best: Math.max(best, newMax) }, window: { start: winL, end: winR, label: 'cur' }, log: restart ? 'restart' : (newMax > best ? 'new best' : 'step') });
+        curMax = newMax;
+        curMin = newMin;
+        if (best < curMax) best = curMax;
+    }
+
+    var hf = {};
+    for (var j = winL; j <= winR; j++) hf[j] = 'found';
+    push('Maximum product subarray = ' + best + '.',
+        { highlight: hf, vars: { best: best }, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['maxprodsubarray'] = {
+    title: 'Maximum Product Subarray — Kadane with max & min',
+    family: 'maxprodsubarray',
+    defaultState: { array: [2, 3, -2, 4] },
+    inputs: [
+        { key: 'array', label: 'Array', value: '2, 3, -2, 4', placeholder: '2, 3, -2, 4', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'current index', color: 'vz-active' },
+        { label: 'current subarray', color: 'vz-swap' },
+        { label: 'best subarray', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizIvMaxProdFrames
+};
+
+/* -------- module: viz/problems/interview/10-mergeintervals.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/interview/10-mergeintervals
+   Merge Intervals (interview variant). Reuses the shared
+   merge-intervals frames with the canonical interview example.
+   Mounts on code/mergeintervals.
+   ============================================================ */
+
+VIZ_CONFIG['mergeintervals'] = {
+    title: 'Merge Intervals — sort by start, merge overlaps',
+    family: 'merge-intervals',
+    defaultState: { intervals: [[1, 3], [2, 6], [8, 10], [15, 18]] },
+    inputs: [
+        { key: 'intervals', label: 'Intervals (pairs with ;)', value: '1 3; 2 6; 8 10; 15 18', placeholder: '1 3; 2 6; 8 10; 15 18', parse: vizParseIntervals }
+    ],
+    legend: [
+        { label: 'current interval', color: 'vz-compare' },
+        { label: 'merging into', color: 'vz-active' }
+    ],
+    stepMs: 1000,
+    simulate: vizMergeIntervalsFrames
+};
+
+/* -------- module: viz/problems/interview/11-findanagrams.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/interview/11-findanagrams
+   Find All Anagrams in a String. Sliding window of length
+   len(p) over s; maintain a running char-count of the window and
+   compare to p's counts. When all counts match, the start index
+   is an anagram. Mounts on code/findanagrams.
+   ============================================================ */
+
+function vizIvFindAnagramsFrames(state) {
+    var s = String(state.s || '');
+    var p = String(state.p || '');
+    var chars = s.split('');
+    var n = chars.length;
+    var m = p.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: chars, highlight: {}, vars: {}, window: null, sub: null };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty string — no anagrams.', arr: [], vars: {}, sub: null }); return frames; }
+    if (!m) { frames.push({ narr: 'Empty pattern — no anagrams.', arr: chars, vars: {}, sub: null }); return frames; }
+
+    var need = {};       /* p char counts */
+    for (var i = 0; i < m; i++) need[p[i]] = (need[p[i]] || 0) + 1;
+    var have = {};       /* window char counts */
+    var matches = 0;
+    var found = [];
+    var subKeys = [], subVals = [];
+    Object.keys(need).forEach(function (c) { subKeys.push(c); subVals.push(need[c]); });
+
+    push('Sliding window of length ' + m + ' over s. Keep counts of window chars and compare to p\u2019s counts (' + p + '). O(n).',
+        { vars: { i: 0, window: 0, matches: 0 }, window: { start: 0, end: Math.min(m - 1, n - 1), label: 'window' }, sub: { label: 'p: char\u2192count', keys: subKeys.slice(), cells: subVals.slice() }, log: 'init' });
+
+    function addChar(c) {
+        if (need[c] === undefined) return;
+        have[c] = (have[c] || 0) + 1;
+        if (have[c] === need[c]) matches++;
+    }
+    function delChar(c) {
+        if (need[c] === undefined) return;
+        if (have[c] === need[c]) matches--;
+        have[c]--;
+    }
+
+    for (var r = 0; r < n; r++) {
+        addChar(chars[r]);
+        if (r >= m) delChar(chars[r - m]);
+        var l = r - m + 1;
+        var h = {};
+        h[l] = 'left';
+        h[r] = 'active';
+        if (matches === Object.keys(need).length) {
+            found.push(l);
+            var hf = {};
+            for (var k = l; k <= r; k++) hf[k] = 'found';
+            push('Window s[' + l + '..' + r + '] = \u201c' + chars.slice(l, r + 1).join('') + '\u201d matches p\u2019s counts \u2192 anagram at index ' + l + '!',
+                { highlight: hf, vars: { l: l, r: r, matches: matches, found: found.join(',') }, window: { start: l, end: r, label: 'window' }, sub: { label: 'p: char\u2192count', keys: subKeys.slice(), cells: subVals.slice() }, log: 'anagram' });
+        } else if (l >= 0) {
+            push('Window s[' + l + '..' + r + '] = \u201c' + chars.slice(l, r + 1).join('') + '\u201d \u2014 not an anagram (matches ' + matches + '/' + Object.keys(need).length + ').',
+                { highlight: h, vars: { l: l, r: r, matches: matches }, window: { start: l, end: r, label: 'window' }, sub: { label: 'p: char\u2192count', keys: subKeys.slice(), cells: subVals.slice() } });
+        }
+    }
+
+    push('Anagram start indices: [' + (found.join(', ') || 'none') + '].',
+        { vars: { found: found.join(',') || 'none' }, sub: { label: 'p: char\u2192count', keys: subKeys.slice(), cells: subVals.slice() }, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['findanagrams'] = {
+    title: 'Find All Anagrams in a String — sliding window counts',
+    family: 'findanagrams',
+    defaultState: { s: 'cbaebabacd', p: 'abc' },
+    inputs: [
+        { key: 's', label: 'String s', value: 'cbaebabacd', placeholder: 'cbaebabacd', parse: function (str) { return String(str || ''); } },
+        { key: 'p', label: 'Pattern p', value: 'abc', placeholder: 'abc', parse: function (str) { return String(str || ''); } }
+    ],
+    legend: [
+        { label: 'window start', color: 'vz-left' },
+        { label: 'current char', color: 'vz-active' },
+        { label: 'anagram window', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizIvFindAnagramsFrames
+};
+
+/* -------- module: viz/problems/interview/12-splitarray.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/interview/12-splitarray
+   Split Array Largest Sum (interview variant). Binary search on
+   the ANSWER using the shared binary-search-answer frames.
+   Mounts on code/splitarray.
+   ============================================================ */
+
+VIZ_CONFIG['splitarray'] = {
+    title: 'Split Array Largest Sum — binary search on the answer',
+    family: 'binary-search-answer',
+    defaultState: { nums: [7, 2, 5, 10, 8], k: 2 },
+    inputs: [
+        { key: 'nums', label: 'Array', value: '7, 2, 5, 10, 8', placeholder: '7, 2, 5, 10, 8', parse: vizParseList },
+        { key: 'k', label: 'Number of parts k', value: '2', placeholder: '2', parse: function (s) { return parseInt(s, 10) || 1; } }
+    ],
+    legend: [
+        { label: 'examining', color: 'vz-compare' },
+        { label: 'answer found', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizBsAnswerFrames
+};
+
+/* -------- module: viz/problems/interview/13-firstmissing.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/interview/13-firstmissing
+   First Missing Positive. Cycle-place every value v in 1..n at
+   index v-1 by swapping, ignoring negatives and values > n. Then
+   scan for the first i where nums[i] != i+1. Mounts on
+   code/firstmissing.
+   ============================================================ */
+
+function vizIvFirstMissingFrames(state) {
+    var a = (state.array || []).slice();
+    var n = a.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: a.slice(), highlight: {}, vars: {}, sub: null };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array — first missing positive = 1.', arr: [], vars: {}, sub: null }); return frames; }
+
+    push('Cycle placement: for every v with 1 \u2264 v \u2264 n, v belongs at index v-1. Swap it there; ignore negatives and values > n.',
+        { vars: {}, sub: { label: 'expected', keys: (function () { var r = []; for (var i = 0; i < n; i++) r.push(i + 1); return r; })(), cells: (function () { var r = []; for (var i = 0; i < n; i++) r.push(i + 1); return r; })() }, log: 'init' });
+
+    for (var i = 0; i < n; i++) {
+        while (a[i] >= 1 && a[i] <= n && a[a[i] - 1] !== a[i]) {
+            var dest = a[i] - 1;
+            var h = {};
+            h[i] = 'left';
+            h[dest] = 'active';
+            push('Place ' + a[i] + ' at its home index ' + dest + ': swap a[' + i + '] \u2194 a[' + dest + '].',
+                { swap: [i, dest], highlight: h, vars: { i: i, home: dest }, sub: null });
+            var t = a[i]; a[i] = a[dest]; a[dest] = t;
+        }
+    }
+
+    var answer = n + 1;
+    var hfound = {};
+    for (var j = 0; j < n; j++) {
+        if (a[j] !== j + 1) {
+            answer = j + 1;
+            hfound[j] = 'found';
+            break;
+        }
+    }
+
+    var hf = {};
+    for (var k = 0; k < n; k++) if (a[k] === k + 1) hf[k] = 'found';
+    push('Placement done. First index where a[i] \u2260 i+1 is ' + (answer - 1) + ' \u2192 first missing positive = ' + answer + '.',
+        { highlight: hf, vars: { answer: answer }, sub: { label: 'expected', keys: (function () { var r = []; for (var i = 0; i < n; i++) r.push(i + 1); return r; })(), cells: (function () { var r = []; for (var i = 0; i < n; i++) r.push(i + 1); return r; })() }, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['firstmissing'] = {
+    title: 'First Missing Positive — cycle placement in place',
+    family: 'firstmissing',
+    defaultState: { array: [3, 4, -1, 1] },
+    inputs: [
+        { key: 'array', label: 'Array', value: '3, 4, -1, 1', placeholder: '3, 4, -1, 1', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'moving value', color: 'vz-left' },
+        { label: 'home slot', color: 'vz-active' },
+        { label: 'correctly placed', color: 'vz-found' }
+    ],
+    stepMs: 1250,
+    simulate: vizIvFirstMissingFrames
+};
+
+/* -------- module: viz/problems/interview/14-trappingwater.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/interview/14-trappingwater
+   Trapping Rain Water. Two pointers from the edges, tracking the
+   max height seen on each side; the shorter wall decides how much
+   water sits on the current bar. The sub-row accumulates the water
+   per bar. Mounts on code/trappingwater.
+   ============================================================ */
+
+function vizIvTrappingWaterFrames(state) {
+    var h = state.array || [];
+    var n = h.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: h, highlight: {}, vars: {}, sub: null, bars: null };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array — 0 water.', arr: [], vars: {}, sub: null }); return frames; }
+
+    var l = 0, r = n - 1;
+    var lMax = 0, rMax = 0;
+    var total = 0;
+    var per = new Array(n).fill(0);
+
+    push('Two pointers l, r from the edges. The lower of the two side-maxima determines water on the current bar.',
+        { vars: { l: l, r: r, lMax: 0, rMax: 0, water: 0 }, sub: { label: 'water per bar', keys: [], cells: [] }, log: 'init' });
+
+    while (l <= r) {
+        var hl = {}, hr = {};
+        hl[l] = 'left'; hr[r] = 'right';
+        if (lMax <= rMax) {
+            lMax = Math.max(lMax, h[l]);
+            var w = lMax - h[l];
+            total += w;
+            per[l] = w;
+            var hw = {};
+            hw[l] = 'found';
+            if (w > 0) {
+                push('Left wall controls (lMax ' + lMax + ' \u2264 rMax ' + rMax + '): bar ' + l + ' holds ' + w + ' unit' + (w === 1 ? '' : 's') + '. total = ' + total + '.',
+                    { highlight: hw, vars: { l: l, r: r, lMax: lMax, rMax: rMax, water: total }, sub: { label: 'water per bar', keys: (function () { var a = []; for (var i = 0; i <= l; i++) if (per[i] > 0) a.push(i); return a; })(), cells: per.slice(0, l + 1).map(function (x) { return x > 0 ? x : ''; }) }, log: 'add' });
+            } else {
+                push('Left wall controls: bar ' + l + ' (' + h[l] + ') is a peak / exposed \u2014 0 water.', { highlight: hw, vars: { l: l, r: r, lMax: lMax, rMax: rMax, water: total } });
+            }
+            l++;
+        } else {
+            rMax = Math.max(rMax, h[r]);
+            var w2 = rMax - h[r];
+            total += w2;
+            per[r] = w2;
+            var hw2 = {};
+            hw2[r] = 'found';
+            if (w2 > 0) {
+                push('Right wall controls (rMax ' + rMax + ' < lMax ' + lMax + '): bar ' + r + ' holds ' + w2 + ' unit' + (w2 === 1 ? '' : 's') + '. total = ' + total + '.',
+                    { highlight: hw2, vars: { l: l, r: r, lMax: lMax, rMax: rMax, water: total }, sub: { label: 'water per bar', keys: (function () { var a = []; for (var i = 0; i < n; i++) if (per[i] > 0) a.push(i); return a; })(), cells: per.slice().map(function (x) { return x > 0 ? x : ''; }) }, log: 'add' });
+            } else {
+                push('Right wall controls: bar ' + r + ' (' + h[r] + ') is a peak / exposed \u2014 0 water.', { highlight: hw2, vars: { l: l, r: r, lMax: lMax, rMax: rMax, water: total } });
+            }
+            r--;
+        }
+    }
+
+    var hf = {};
+    for (var i = 0; i < n; i++) if (per[i] > 0) hf[i] = 'found';
+    push('Total trapped rainwater = ' + total + '.',
+        { highlight: hf, vars: { water: total }, sub: { label: 'water per bar', keys: (function () { var a = []; for (var i = 0; i < n; i++) if (per[i] > 0) a.push(i); return a; })(), cells: per.slice().map(function (x) { return x > 0 ? x : ''; }) }, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['trappingwater'] = {
+    title: 'Trapping Rain Water — two pointers with side maxima',
+    family: 'trappingwater',
+    defaultState: { array: [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1] },
+    inputs: [
+        { key: 'array', label: 'Heights', value: '0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1', placeholder: '0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'left pointer', color: 'vz-left' },
+        { label: 'right pointer', color: 'vz-right' },
+        { label: 'water held', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizIvTrappingWaterFrames
+};
+
+/* -------- module: viz/problems/interview/15-slidingwindowmax.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/interview/15-slidingwindowmax
+   Sliding Window Maximum. A monotonic deque keeps candidate
+   indices in decreasing value order: pop smaller tail values, pop
+   the head once it leaves the window, and the head is always the
+   current window's max. Mounts on code/slidingwindowmax.
+   ============================================================ */
+
+function vizIvSlidingWindowMaxFrames(state) {
+    var nums = state.array || [];
+    var k = Math.max(state.k || 1, 1);
+    var n = nums.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: nums, highlight: {}, vars: {}, sub: null, window: null };
+        for (var kk in extra) f[kk] = extra[kk];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array.', arr: [], vars: {}, sub: null }); return frames; }
+
+    var dq = [];           /* indices, values decreasing */
+    var out = [];
+
+    push('Monotonic deque of indices holding values in DEcreasing order. Before adding index i: pop tail while its value \u2264 nums[i], pop head if it fell out of the window. Head = current max.',
+        { vars: { i: 0, window: 0, max: '-' }, window: { start: 0, end: Math.min(k - 1, n - 1), label: 'window' }, sub: { label: 'deque (values)', keys: [], cells: [] }, log: 'init' });
+
+    function dqLabel() {
+        var keys = [], cells = [];
+        for (var i = 0; i < dq.length; i++) { keys.push(dq[i]); cells.push(nums[dq[i]]); }
+        return { keys: keys, cells: cells };
+    }
+
+    for (var i = 0; i < n; i++) {
+        var lo = i - k + 1;
+        if (dq.length && dq[0] < lo) {
+            var dropped = dq.shift();
+            push('Index ' + dropped + ' fell out of window [max(' + lo + ',0)..' + i + '] \u2192 pop from head.',
+                { vars: { i: i, window: lo + '..' + i, max: dq.length ? nums[dq[0]] : '-' }, window: { start: Math.max(lo, 0), end: i, label: 'window' }, sub: { label: 'deque (values)', keys: dqLabel().keys, cells: dqLabel().cells } });
+        }
+        while (dq.length && nums[dq[dq.length - 1]] <= nums[i]) {
+            var popped = dq.pop();
+            push('nums[' + popped + '] = ' + nums[popped] + ' \u2264 nums[' + i + '] = ' + nums[i] + ' \u2192 pop smaller tail.',
+                { vars: { i: i, window: lo + '..' + i, max: dq.length ? nums[dq[0]] : '-' }, window: { start: Math.max(lo, 0), end: i, label: 'window' }, sub: { label: 'deque (values)', keys: dqLabel().keys, cells: dqLabel().cells } });
+        }
+        dq.push(i);
+        if (lo >= 0) {
+            var mx = nums[dq[0]];
+            out.push(mx);
+            var h = {};
+            h[dq[0]] = 'found';
+            push('Window [' + lo + '..' + i + '] max = nums[' + dq[0] + '] = ' + mx + '  \u2192 maxima so far: [' + out.join(', ') + '].',
+                { highlight: h, vars: { i: i, window: lo + '..' + i, max: mx }, window: { start: lo, end: i, label: 'window' }, sub: { label: 'deque (values)', keys: dqLabel().keys, cells: dqLabel().cells, highlight: (function () { var x = {}; x[0] = 'found'; return x; })() }, log: 'max' });
+        } else {
+            push('Build window: added ' + nums[i] + ' (deque: [' + dq.map(function (j) { return nums[j]; }).join(', ') + ']).',
+                { vars: { i: i, window: lo + '..' + i }, window: { start: 0, end: i, label: 'window' }, sub: { label: 'deque (values)', keys: dqLabel().keys, cells: dqLabel().cells } });
+        }
+    }
+
+    push('Sliding window maxima = [' + out.join(', ') + '].',
+        { vars: { max: out.join(', ') }, sub: { label: 'deque (values)', keys: dqLabel().keys, cells: dqLabel().cells }, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['slidingwindowmax'] = {
+    title: 'Sliding Window Maximum — monotonic deque',
+    family: 'slidingwindowmax',
+    defaultState: { array: [1, 3, -1, -3, 5, 3, 6, 7], k: 3 },
+    inputs: [
+        { key: 'array', label: 'Array', value: '1, 3, -1, -3, 5, 3, 6, 7', placeholder: '1, 3, -1, -3, 5, 3, 6, 7', parse: vizParseList },
+        { key: 'k', label: 'Window size k', value: '3', placeholder: '3', parse: function (s) { return parseInt(s, 10) || 1; } }
+    ],
+    legend: [
+        { label: 'window maximum', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizIvSlidingWindowMaxFrames
+};
+
+/* -------- module: viz/problems/interview/16-containerwater.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/interview/16-containerwater
+   Container With Most Water. Two pointers from the edges; the
+   shorter line limits the area, so advance it inward and track the
+   best area seen. Mounts on code/containerwater.
+   ============================================================ */
+
+function vizIvContainerWaterFrames(state) {
+    var h = state.array || [];
+    var n = h.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: h, highlight: {}, vars: {}, sub: null };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array — 0 area.', arr: [], vars: {}, sub: null }); return frames; }
+
+    var l = 0, r = n - 1;
+    var best = 0, bl = 0, br = 0;
+
+    push('Two pointers at the extremes. area = (r - l) \u00b7 min(h[l], h[r]). Moving the taller line inward can never beat the current area, so always advance the shorter one.',
+        { vars: { l: l, r: r, area: 0, best: 0 }, sub: { label: 'current container', keys: [], cells: [] }, log: 'init' });
+
+    while (l < r) {
+        var width = r - l;
+        var area = width * Math.min(h[l], h[r]);
+        var hl = {}, hr = {};
+        hl[l] = 'left'; hr[r] = 'right';
+        var limitedByLeft = h[l] <= h[r];
+        if (area > best) { best = area; bl = l; br = r; }
+
+        var labelL = limitedByLeft ? 'shorter' : 'taller';
+        var labelR = limitedByLeft ? 'taller' : 'shorter';
+        var h2 = {};
+        h2[l] = limitedByLeft ? 'left' : 'right';
+        h2[r] = limitedByLeft ? 'right' : 'left';
+        if (area === best && width === n - 1 && l === 0) {
+            push('Container [' + l + '..' + r + ']: width ' + width + ' \u00b7 min(' + h[l] + ', ' + h[r] + ') = ' + area + '  \u2192 start. best = ' + best + '.',
+                { highlight: h2, vars: { l: l, r: r, area: area, best: best } });
+        } else if (area > 0) {
+            push('Container [' + l + '..' + r + ']: width ' + width + ' \u00b7 min(' + h[l] + ', ' + h[r] + ') = ' + area + (area === best && bl === l && br === r ? '  \u2192 NEW BEST' : '') + '. h[' + l + '] (' + h[l] + ') is ' + labelL + ' \u2192 advance it.',
+                { highlight: h2, vars: { l: l, r: r, area: area, best: best }, log: area === best && bl === l && br === r ? 'new best' : 'step' });
+        } else {
+            push('Container [' + l + '..' + r + ']: width ' + width + ' \u00b7 min(' + h[l] + ', ' + h[r] + ') = ' + area + '. Advance the shorter line.',
+                { highlight: h2, vars: { l: l, r: r, area: area, best: best } });
+        }
+
+        if (limitedByLeft) l++; else r--;
+    }
+
+    var hf = {};
+    hf[bl] = 'found';
+    hf[br] = 'found';
+    push('Maximum water = ' + best + ' (lines ' + bl + ' and ' + br + ').',
+        { highlight: hf, vars: { best: best }, sub: null, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['containerwater'] = {
+    title: 'Container With Most Water — two pointers, advance the shorter',
+    family: 'containerwater',
+    defaultState: { array: [1, 8, 6, 2, 5, 4, 8, 3, 7] },
+    inputs: [
+        { key: 'array', label: 'Heights', value: '1, 8, 6, 2, 5, 4, 8, 3, 7', placeholder: '1, 8, 6, 2, 5, 4, 8, 3, 7', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'left line', color: 'vz-left' },
+        { label: 'right line', color: 'vz-right' },
+        { label: 'best container', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizIvContainerWaterFrames
+};
+
+/* -------- module: viz/problems/leetcode/01-removeelement.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/leetcode/01-removeelement
+   Remove Element: two pointers in place. read scans; write keeps
+   the next slot for a value != val. Non-matching values are copied
+   forward; everything equal to val is skipped. Mounts on
+   code/removeelement.
+   ============================================================ */
+
+function vizLcRemoveElementFrames(state) {
+    var a = (state.array || []).slice();
+    var val = state.val;
+    var n = a.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: a.slice(), highlight: {}, vars: {}, sub: null };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array — 0 elements remain.', arr: [], vars: {}, sub: null }); return frames; }
+
+    var w = 0;
+
+    push('Scan with read; write marks the next slot for a value \u2260 ' + val + '. Values equal to ' + val + ' are skipped. O(n).',
+        { highlight: { 0: 'active' }, vars: { r: 0, w: w, val: val }, sub: { label: 'kept prefix', keys: [], cells: [] }, log: 'init' });
+
+    for (var r = 0; r < n; r++) {
+        if (a[r] !== val) {
+            a[w] = a[r];
+            var hw = {};
+            hw[w] = 'found';
+            hw[r] = 'active';
+            push('a[' + r + '] = ' + a[r] + ' \u2260 ' + val + ' \u2192 keep: write at slot ' + w + ', advance.',
+                { highlight: hw, vars: { r: r, w: w, val: val }, sub: { label: 'kept prefix', keys: a.slice(0, w + 1), cells: a.slice(0, w + 1), highlight: (function () { var x = {}; x[w] = 'active'; return x; })() }, log: 'keep' });
+            w++;
+        } else {
+            push('a[' + r + '] = ' + val + ' \u2192 remove (skip).',
+                { highlight: (function () { var h = {}; h[r] = 'compare'; h[w] = 'left'; return h; })(), vars: { r: r, w: w, val: val } });
+        }
+    }
+
+    push('Done \u2014 ' + w + ' elements remain: [' + a.slice(0, w).join(', ') + '].',
+        { vars: { k: w }, sub: { label: 'kept prefix', keys: a.slice(0, w), cells: a.slice(0, w), highlight: (function () { var x = {}; for (var i = 0; i < w; i++) x[i] = 'found'; return x; })() }, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['removeelement'] = {
+    title: 'Remove Element — in-place write pointer',
+    family: 'removeelement',
+    defaultState: { array: [3, 2, 2, 3], val: 3 },
+    inputs: [
+        { key: 'array', label: 'Array', value: '3, 2, 2, 3', placeholder: '3, 2, 2, 3', parse: vizParseList },
+        { key: 'val', label: 'Value to remove', value: '3', placeholder: '3', parse: function (s) { return parseInt(s, 10) || 0; } }
+    ],
+    legend: [
+        { label: 'write slot', color: 'vz-left' },
+        { label: 'reading', color: 'vz-active' },
+        { label: 'kept value', color: 'vz-found' },
+        { label: 'removed', color: 'vz-compare' }
+    ],
+    stepMs: 1150,
+    simulate: vizLcRemoveElementFrames
+};
+
+/* -------- module: viz/problems/leetcode/02-plusone.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/leetcode/02-plusone
+   Plus One: scan from the least significant digit. Add 1; if the
+   digit stays < 10 we're done, otherwise carry the 1 left. If the
+   carry escapes the most significant digit, prepend a 1.
+   Mounts on code/plusone.
+   ============================================================ */
+
+function vizLcPlusOneFrames(state) {
+    var a = (state.array || []).slice();
+    var n = a.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: a.slice(), highlight: {}, vars: {}, sub: null };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array.', arr: [], vars: {}, sub: null }); return frames; }
+
+    var carry = 1;
+    push('Add 1 as a carry starting at the last digit. If a digit reaches 10, carry 1 to the left.',
+        { highlight: (function () { var h = {}; h[n - 1] = 'active'; return h; })(), vars: { i: n - 1, carry: 1 }, log: 'init' });
+
+    for (var i = n - 1; i >= 0; i--) {
+        var s = a[i] + carry;
+        if (s >= 10) {
+            a[i] = s - 10;
+            carry = 1;
+            push('a[' + i + '] + carry = ' + s + ' \u2265 10 \u2192 digit becomes ' + a[i] + ', carry 1 to the left.',
+                { highlight: (function () { var h = {}; h[i] = 'found'; return h; })(), vars: { i: i, carry: 1, digit: a[i] }, log: 'carry' });
+        } else {
+            a[i] = s;
+            carry = 0;
+            push('a[' + i + '] + carry = ' + s + ' < 10 \u2192 digit = ' + a[i] + ', no more carry. Done.',
+                { highlight: (function () { var h = {}; h[i] = 'found'; return h; })(), vars: { i: i, carry: 0, digit: a[i] }, log: 'done' });
+            push('Result: [' + a.join(', ') + '].',
+                { highlight: (function () { var h = {}; for (var k = i; k < n; k++) h[k] = 'found'; return h; })(), vars: {}, sub: { label: 'result', keys: a.slice(i), cells: a.slice(i) }, log: 'done' });
+            return frames;
+        }
+    }
+
+    if (carry) {
+        a.unshift(1);
+        push('Carry escaped the most significant digit \u2192 prepend 1. Result: [' + a.join(', ') + '].',
+            { highlight: { 0: 'found' }, vars: {}, sub: { label: 'result', keys: a.slice(), cells: a.slice() }, log: 'carry out' });
+    }
+
+    return frames;
+}
+
+VIZ_CONFIG['plusone'] = {
+    title: 'Plus One — add 1 with carry propagation',
+    family: 'plusone',
+    defaultState: { array: [1, 2, 3] },
+    inputs: [
+        { key: 'array', label: 'Digits', value: '1, 2, 3', placeholder: '1, 2, 3', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'updated digit', color: 'vz-found' },
+        { label: 'examining', color: 'vz-active' }
+    ],
+    stepMs: 1150,
+    simulate: vizLcPlusOneFrames
+};
+
+/* -------- module: viz/problems/leetcode/03-mergesorted.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/leetcode/03-mergesorted
+   Merge Sorted Array: merge a (with n real values + m zero
+   padding) and b into a, in place, by filling from the END. The
+   largest remaining value of either array is placed at the tail.
+   Mounts on code/mergesorted.
+   ============================================================ */
+
+function vizLcMergeSortedFrames(state) {
+    var a = (state.a || []).slice();
+    var b = state.b || [];
+    var n = state.n;
+    var m = state.m;
+    var total = a.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: a.slice(), highlight: {}, vars: {}, sub: null };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!total) { frames.push({ narr: 'Empty array.', arr: [], vars: {}, sub: null }); return frames; }
+
+    var i = n - 1, j = m - 1, w = total - 1;
+
+    push('Merge backwards: i = last real value of a, j = last of b, w = tail write slot. Take the larger tail value each step.',
+        { vars: { i: i, j: j, w: w }, highlight: (function () { var h = {}; if (i >= 0) h[i] = 'left'; if (j >= 0) h[j] = 'right'; return h; })(), sub: { label: 'b', keys: b.slice(), cells: b.slice() }, log: 'init' });
+
+    while (j >= 0) {
+        if (i >= 0 && a[i] > b[j]) {
+            a[w] = a[i];
+            push('a[' + i + '] = ' + a[i] + ' > b[' + j + '] = ' + b[j] + ' \u2192 a[i] goes to slot ' + w + '.',
+                { highlight: (function () { var h = {}; h[i] = 'left'; h[w] = 'found'; return h; })(), vars: { i: i, j: j, w: w }, sub: { label: 'b', keys: b.slice(), cells: b.slice() } });
+            i--;
+        } else {
+            a[w] = b[j];
+            push('b[' + j + '] = ' + b[j] + ' \u2265 a[' + (i >= 0 ? i : '\u2013') + '] \u2192 b[j] goes to slot ' + w + '.',
+                { highlight: (function () { var h = {}; h[j] = 'right'; h[w] = 'found'; return h; })(), vars: { i: i, j: j, w: w }, sub: { label: 'b', keys: b.slice(), cells: b.slice(), highlight: (function () { var h = {}; h[j] = 'right'; return h; })() } });
+            j--;
+        }
+        w--;
+    }
+
+    var hf = {};
+    for (var k = 0; k < total; k++) hf[k] = 'found';
+    push('Merged: [' + a.join(', ') + '].',
+        { highlight: hf, vars: {}, sub: { label: 'b', keys: b.slice(), cells: b.slice() }, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['mergesorted'] = {
+    title: 'Merge Sorted Array — merge in place from the end',
+    family: 'mergesorted',
+    defaultState: { a: [1, 2, 3, 0, 0, 0], b: [2, 5, 6], n: 3, m: 3 },
+    inputs: [
+        { key: 'a', label: 'Array a (with padding)', value: '1, 2, 3, 0, 0, 0', placeholder: '1, 2, 3, 0, 0, 0', parse: vizParseList },
+        { key: 'b', label: 'Array b', value: '2, 5, 6', placeholder: '2, 5, 6', parse: vizParseList },
+        { key: 'n', label: 'Real count n', value: '3', placeholder: '3', parse: function (s) { return parseInt(s, 10) || 0; } },
+        { key: 'm', label: 'Real count m', value: '3', placeholder: '3', parse: function (s) { return parseInt(s, 10) || 0; } }
+    ],
+    legend: [
+        { label: 'a pointer', color: 'vz-left' },
+        { label: 'b pointer', color: 'vz-right' },
+        { label: 'written value', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizLcMergeSortedFrames
+};
+
+/* -------- module: viz/problems/leetcode/04-missingnumber.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/leetcode/04-missingnumber
+   Missing Number: n distinct values in 0..n, one is missing.
+   XOR trick: x = 0 XOR every index (0..n) and every value; the
+   values that cancel are the ones present, leaving the missing
+   number. Mounts on code/missingnumber.
+   ============================================================ */
+
+function vizLcMissingNumberFrames(state) {
+    var a = state.array || [];
+    var n = a.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: a, highlight: {}, vars: {}, sub: null };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array — missing number 0.', arr: [], vars: {}, sub: null }); return frames; }
+
+    var x = 0;
+
+    push('XOR trick: x starts 0. XOR it with every index i in 0..n and every value a[i]; paired index/value cancel, leaving the missing number.',
+        { vars: { x: 0, op: 'start' }, sub: { label: 'expected 0..n', keys: (function () { var r = []; for (var i = 0; i <= n; i++) r.push(i); return r; })(), cells: (function () { var r = []; for (var i = 0; i <= n; i++) r.push(i); return r; })() }, log: 'init' });
+
+    for (var i = 0; i < n; i++) {
+        var x1 = x ^ i;
+        push('x = ' + x + ' XOR index ' + i + ' = ' + x1 + '.',
+            { highlight: (function () { var h = {}; h[i] = 'left'; return h; })(), vars: { x: x1, op: 'xor index ' + i }, sub: null });
+        x = x1;
+        var x2 = x ^ a[i];
+        push('x = ' + x + ' XOR value a[' + i + '] = ' + a[i] + ' = ' + x2 + '.',
+            { highlight: (function () { var h = {}; h[i] = 'active'; return h; })(), vars: { x: x2, op: 'xor value a[' + i + ']' }, sub: null });
+        x = x2;
+    }
+
+    var xf = x ^ n;
+    push('Finally XOR with index ' + n + ': ' + x + ' ^ ' + n + ' = ' + xf + '.',
+        { vars: { x: xf, op: 'xor index ' + n }, sub: { label: 'expected 0..n', keys: (function () { var r = []; for (var i = 0; i <= n; i++) r.push(i); return r; })(), cells: (function () { var r = []; for (var i = 0; i <= n; i++) r.push(i); return r; })() }, log: 'step' });
+    x = xf;
+
+    var hf = {};
+    for (var j = 0; j < n; j++) hf[j] = 'found';
+    push('Missing number = ' + x + '.',
+        { highlight: hf, vars: { missing: x }, sub: { label: 'expected 0..n', keys: (function () { var r = []; for (var i = 0; i <= n; i++) r.push(i); return r; })(), cells: (function () { var r = []; for (var i = 0; i <= n; i++) r.push(i); return r; })() }, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['missingnumber'] = {
+    title: 'Missing Number — XOR trick',
+    family: 'missingnumber',
+    defaultState: { array: [3, 0, 1] },
+    inputs: [
+        { key: 'array', label: 'Array (0..n, one missing)', value: '3, 0, 1', placeholder: '3, 0, 1', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'index xor', color: 'vz-left' },
+        { label: 'value xor', color: 'vz-active' },
+        { label: 'present values', color: 'vz-found' }
+    ],
+    stepMs: 1000,
+    simulate: vizLcMissingNumberFrames
+};
+
+/* -------- module: viz/problems/leetcode/05-rangesum.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/leetcode/05-rangesum
+   Range Sum Query (Immutable): build a prefix-sum array once,
+   then answer sum(lo..hi) = prefix[hi+1] - prefix[lo] in O(1).
+   The sub-row shows the prefix array. Mounts on code/rangesum.
+   ============================================================ */
+
+function vizLcRangeSumFrames(state) {
+    var a = state.array || [];
+    var lo = state.lo;
+    var hi = state.hi;
+    var n = a.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: a, highlight: {}, vars: {}, sub: null };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array.', arr: [], vars: {}, sub: null }); return frames; }
+
+    var prefix = [0];
+
+    push('Precompute prefix[i] = sum of a[0..i-1]. Then any range sum is two lookups: sum(lo..hi) = prefix[hi+1] - prefix[lo].',
+        { vars: { build: true }, sub: { label: 'prefix', keys: [0], cells: [0] }, log: 'init' });
+
+    for (var i = 0; i < n; i++) {
+        prefix.push(prefix[prefix.length - 1] + a[i]);
+        push('prefix[' + (i + 1) + '] = prefix[' + i + '] + a[' + i + '] = ' + prefix[i] + ' + ' + a[i] + ' = ' + prefix[i + 1] + '.',
+            { highlight: (function () { var h = {}; h[i] = 'active'; return h; })(), vars: { i: i, p: prefix[i + 1] }, sub: { label: 'prefix', keys: prefix.map(function (_, k) { return k; }), cells: prefix.slice(), highlight: (function () { var h = {}; h[i + 1] = 'active'; return h; })() } });
+    }
+
+    var s = prefix[hi + 1] - prefix[lo];
+    var hl = {};
+    hl[lo] = 'left';
+    hl[hi] = 'right';
+    push('Query sum(' + lo + '..' + hi + ') = prefix[' + (hi + 1) + '] - prefix[' + lo + '] = ' + prefix[hi + 1] + ' - ' + prefix[lo] + ' = ' + s + '.',
+        { highlight: hl, vars: { lo: lo, hi: hi, sum: s }, sub: { label: 'prefix', keys: prefix.map(function (_, k) { return k; }), cells: prefix.slice(), highlight: (function () { var h = {}; h[hi + 1] = 'right'; h[lo] = 'left'; return h; })() }, log: 'query' });
+
+    push('Range sum = ' + s + ' (O(1) per query after O(n) build).',
+        { vars: { sum: s }, sub: { label: 'prefix', keys: prefix.map(function (_, k) { return k; }), cells: prefix.slice() }, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['rangesum'] = {
+    title: 'Range Sum Query (Immutable) — prefix sums',
+    family: 'rangesum',
+    defaultState: { array: [-2, 0, 3, -5, 2, -1], lo: 0, hi: 2 },
+    inputs: [
+        { key: 'array', label: 'Array', value: '-2, 0, 3, -5, 2, -1', placeholder: '-2, 0, 3, -5, 2, -1', parse: vizParseList },
+        { key: 'lo', label: 'lo', value: '0', placeholder: '0', parse: function (s) { return parseInt(s, 10) || 0; } },
+        { key: 'hi', label: 'hi', value: '2', placeholder: '2', parse: function (s) { return parseInt(s, 10) || 0; } }
+    ],
+    legend: [
+        { label: 'lo', color: 'vz-left' },
+        { label: 'hi', color: 'vz-right' },
+        { label: 'building prefix', color: 'vz-active' }
+    ],
+    stepMs: 1000,
+    simulate: vizLcRangeSumFrames
+};
+
+/* -------- module: viz/problems/leetcode/06-intersection.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/leetcode/06-intersection
+   Intersection of Two Arrays: put the smaller array into a
+   hashset, then scan the other keeping only values already in the
+   set (deduped). The sub-row shows the result. Mounts on
+   code/intersection.
+   ============================================================ */
+
+function vizLcIntersectionFrames(state) {
+    var a = state.a || [];
+    var b = state.b || [];
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: a, highlight: {}, vars: {}, sub: null };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!a.length) { frames.push({ narr: 'Empty array — no intersection.', arr: [], vars: {}, sub: null }); return frames; }
+
+    var set = {};
+    var setList = [];
+    var result = [];
+
+    push('Put array a into a hashset, then scan b: keep only values already in the set (add each at most once).',
+        { vars: { building: true }, sub: { label: 'set(a)', keys: [], cells: [] }, log: 'init' });
+
+    for (var i = 0; i < a.length; i++) {
+        if (set[a[i]] === undefined) {
+            set[a[i]] = true;
+            setList.push(a[i]);
+        }
+    }
+    push('Set built from a: {' + setList.join(', ') + '}.',
+        { sub: { label: 'set(a)', keys: setList.slice(), cells: setList.slice() }, vars: {} });
+
+    for (var j = 0; j < b.length; j++) {
+        var hb = {};
+        hb[j] = 'active';
+        if (set[b[j]] && result.indexOf(b[j]) === -1) {
+            result.push(b[j]);
+            var hr = {};
+            hr[j] = 'found';
+            push('b[' + j + '] = ' + b[j] + ' is in set(a) and not yet in result \u2192 add. Result: [' + result.join(', ') + '].',
+                { highlight: hr, vars: { j: j, result: result.join(',') }, sub: { label: 'set(a)', keys: setList.slice(), cells: setList.slice(), highlight: (function () { var x = {}; for (var s = 0; s < setList.length; s++) if (setList[s] === b[j]) x[s] = 'found'; return x; })() }, log: 'match' });
+        } else if (set[b[j]]) {
+            push('b[' + j + '] = ' + b[j] + ' already in result \u2014 skip (dedupe).',
+                { highlight: hb, vars: { j: j, result: result.join(',') }, sub: { label: 'set(a)', keys: setList.slice(), cells: setList.slice() } });
+        } else {
+            push('b[' + j + '] = ' + b[j] + ' not in set(a) \u2014 skip.',
+                { highlight: hb, vars: { j: j, result: result.join(',') }, sub: { label: 'set(a)', keys: setList.slice(), cells: setList.slice() } });
+        }
+    }
+
+    push('Intersection = [' + result.join(', ') + '].',
+        { vars: { result: result.join(',') || 'none' }, sub: { label: 'set(a)', keys: setList.slice(), cells: setList.slice() }, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['intersection'] = {
+    title: 'Intersection of Two Arrays — hashset lookup',
+    family: 'intersection',
+    defaultState: { a: [1, 2, 2, 1], b: [2, 2] },
+    inputs: [
+        { key: 'a', label: 'Array a', value: '1, 2, 2, 1', placeholder: '1, 2, 2, 1', parse: vizParseList },
+        { key: 'b', label: 'Array b', value: '2, 2', placeholder: '2, 2', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'examining b', color: 'vz-active' },
+        { label: 'common value', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizLcIntersectionFrames
+};
+
+/* -------- module: viz/problems/leetcode/07-disappeared.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/leetcode/07-disappeared
+   Find All Disappeared Numbers. Mark presence in place: for each
+   value v, negate nums[abs(v)-1] (if not already negative). Then
+   indices with a still-positive value are the missing numbers.
+   Mounts on code/disappeared.
+   ============================================================ */
+
+function vizLcDisappearedFrames(state) {
+    var a = (state.array || []).slice();
+    var n = a.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: a.slice(), highlight: {}, vars: {}, sub: null };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array — all numbers missing from 1..n?', arr: [], vars: {}, sub: null }); return frames; }
+
+    push('Mark presence in place: for each value v, negate the value at index |v|-1. O(1) extra space. Afterward, positive values = missing numbers.',
+        { vars: {}, sub: { label: 'expected 1..n', keys: (function () { var r = []; for (var i = 1; i <= n; i++) r.push(i); return r; })(), cells: (function () { var r = []; for (var i = 1; i <= n; i++) r.push(i); return r; })() }, log: 'init' });
+
+    for (var i = 0; i < n; i++) {
+        var v = Math.abs(a[i]);
+        var idx = v - 1;
+        var h = {};
+        h[i] = 'active';
+        if (a[idx] > 0) {
+            a[idx] = -a[idx];
+            var h2 = {};
+            h2[i] = 'active';
+            h2[idx] = 'found';
+            push('value ' + v + ' present \u2192 negate a[' + idx + '] (' + (-a[idx]) + ').',
+                { highlight: h2, vars: { i: i, v: v, mark: idx }, sub: null });
+        } else {
+            push('value ' + v + ' already marked (a[' + idx + '] = ' + a[idx] + ').',
+                { highlight: h, vars: { i: i, v: v, mark: idx } });
+        }
+    }
+
+    var missing = [];
+    for (var j = 0; j < n; j++) {
+        if (a[j] > 0) missing.push(j + 1);
+    }
+
+    var hf = {};
+    for (var k = 0; k < n; k++) if (a[k] < 0) hf[k] = 'found';
+    push('Indices still positive = missing numbers \u2192 [' + missing.join(', ') + '].',
+        { highlight: hf, vars: { missing: missing.join(',') || 'none' }, sub: { label: 'expected 1..n', keys: (function () { var r = []; for (var i = 1; i <= n; i++) r.push(i); return r; })(), cells: (function () { var r = []; for (var i = 1; i <= n; i++) r.push(i); return r; })(), highlight: (function () { var x = {}; for (var s = 0; s < missing.length; s++) x[missing[s] - 1] = 'found'; return x; })() }, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['disappeared'] = {
+    title: 'Find All Disappeared Numbers — in-place marking',
+    family: 'disappeared',
+    defaultState: { array: [4, 3, 2, 7, 8, 2, 3, 1] },
+    inputs: [
+        { key: 'array', label: 'Array (1..n)', value: '4, 3, 2, 7, 8, 2, 3, 1', placeholder: '4, 3, 2, 7, 8, 2, 3, 1', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'reading value', color: 'vz-active' },
+        { label: 'marked negative', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizLcDisappearedFrames
+};
+
+/* -------- module: viz/problems/leetcode/08-pivotindex.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/leetcode/08-pivotindex
+   Pivot Index: find i where sum(left of i) == sum(right of i).
+   Use the total sum: left sum accumulates; right = total - left -
+   nums[i]. Mounts on code/pivotindex.
+   ============================================================ */
+
+function vizLcPivotIndexFrames(state) {
+    var a = state.array || [];
+    var n = a.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: a, highlight: {}, vars: {}, sub: null };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array — no pivot.', arr: [], vars: {}, sub: null }); return frames; }
+
+    var total = 0;
+    for (var t = 0; t < n; t++) total += a[t];
+    var left = 0;
+
+    push('Pivot i: sum(a[0..i-1]) == sum(a[i+1..n-1]). Compute right = total - left - a[i] and compare with left.',
+        { vars: { total: total, left: 0 }, sub: null, log: 'init' });
+
+    for (var i = 0; i < n; i++) {
+        var right = total - left - a[i];
+        var hl = {}, hr = {};
+        for (var l = 0; l < i; l++) hl[l] = 'left';
+        for (var r = i + 1; r < n; r++) hr[r] = 'right';
+        if (left === right) {
+            var h = {};
+            h[i] = 'found';
+            push('PIVOT at index ' + i + ': left = ' + left + ', right = ' + right + ' \u2014 equal!',
+                { highlight: h, vars: { i: i, left: left, right: right }, sub: { label: 'left | right', keys: [], cells: [] }, log: 'pivot' });
+            return frames;
+        }
+        var h2 = {};
+        h2[i] = 'active';
+        push('i = ' + i + ': left = ' + left + ', right = ' + right + ' \u2014 not equal (a[' + i + '] = ' + a[i] + ').',
+            { highlight: h2, vars: { i: i, left: left, right: right }, sub: null });
+        left += a[i];
+    }
+
+    push('No pivot index found (return -1).',
+        { vars: { pivot: -1 }, sub: null, log: 'none' });
+
+    return frames;
+}
+
+VIZ_CONFIG['pivotindex'] = {
+    title: 'Pivot Index — balanced left/right sums',
+    family: 'pivotindex',
+    defaultState: { array: [1, 7, 3, 6, 5, 6] },
+    inputs: [
+        { key: 'array', label: 'Array', value: '1, 7, 3, 6, 5, 6', placeholder: '1, 7, 3, 6, 5, 6', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'left of i', color: 'vz-left' },
+        { label: 'right of i', color: 'vz-right' },
+        { label: 'pivot', color: 'vz-found' },
+        { label: 'examining', color: 'vz-active' }
+    ],
+    stepMs: 1150,
+    simulate: vizLcPivotIndexFrames
+};
+
+/* -------- module: viz/problems/snippets/01-sumarray.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/snippets/01-sumarray
+   Sum of an Array: one left-to-right pass adding each element to
+   an accumulator. Mounts on code/sumarray.
+   ============================================================ */
+
+function vizSnSumArrayFrames(state) {
+    var a = state.array || [];
+    var n = a.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: a, highlight: {}, vars: {} };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array — sum 0.', arr: [], vars: {} }); return frames; }
+
+    var sum = 0;
+    push('Sum all elements with a running total. O(n).',
+        { vars: { sum: 0 }, log: 'init' });
+
+    for (var i = 0; i < n; i++) {
+        sum += a[i];
+        push('i = ' + i + ': add a[' + i + '] = ' + a[i] + ' \u2192 sum = ' + sum + '.',
+            { highlight: (function () { var h = {}; h[i] = 'active'; return h; })(), vars: { i: i, a: a[i], sum: sum } });
+    }
+
+    push('Sum of array = ' + sum + '.',
+        { vars: { sum: sum }, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['sumarray'] = {
+    title: 'Sum of Array — running total',
+    family: 'sumarray',
+    defaultState: { array: [1, 2, 3, 4, 5] },
+    inputs: [
+        { key: 'array', label: 'Array', value: '1, 2, 3, 4, 5', placeholder: '1, 2, 3, 4, 5', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'adding', color: 'vz-active' }
+    ],
+    stepMs: 1000,
+    simulate: vizSnSumArrayFrames
+};
+
+/* -------- module: viz/problems/snippets/02-reverse.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/snippets/02-reverse
+   Reverse an Array: swap the two ends with l/r pointers and move
+   inward until they cross. Mounts on code/reverse.
+   ============================================================ */
+
+function vizSnReverseFrames(state) {
+    var a = (state.array || []).slice();
+    var n = a.length;
+    var frames = [];
+
+    function push(narr, extra) {
+        var f = { narr: narr, arr: a.slice(), highlight: {}, vars: {} };
+        for (var k in extra) f[k] = extra[k];
+        frames.push(f);
+    }
+
+    if (!n) { frames.push({ narr: 'Empty array.', arr: [], vars: {} }); return frames; }
+
+    var l = 0, r = n - 1;
+    push('Two pointers at the ends. Swap a[l] and a[r], then l++, r--. Stop when l \u2265 r.',
+        { highlight: { 0: 'left', [n - 1]: 'right' }, vars: { l: l, r: r }, log: 'init' });
+
+    while (l < r) {
+        var h = {};
+        h[l] = 'left';
+        h[r] = 'right';
+        push('Swap a[' + l + '] (' + a[l] + ') \u2194 a[' + r + '] (' + a[r] + ').',
+            { swap: [l, r], highlight: h, vars: { l: l, r: r } });
+        var t = a[l]; a[l] = a[r]; a[r] = t;
+        l++; r--;
+    }
+
+    var hf = {};
+    for (var i = 0; i < n; i++) hf[i] = 'found';
+    push('Reversed: [' + a.join(', ') + '].',
+        { highlight: hf, vars: {}, log: 'done' });
+
+    return frames;
+}
+
+VIZ_CONFIG['reverse'] = {
+    title: 'Reverse an Array — two-pointer swaps',
+    family: 'reverse',
+    defaultState: { array: [1, 2, 3, 4, 5] },
+    inputs: [
+        { key: 'array', label: 'Array', value: '1, 2, 3, 4, 5', placeholder: '1, 2, 3, 4, 5', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'left', color: 'vz-left' },
+        { label: 'right', color: 'vz-right' },
+        { label: 'reversed', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizSnReverseFrames
+};
+
+/* -------- module: viz/problems/snippets/03-prefixsum.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/snippets/03-prefixsum
+   Prefix Sum (snippet variant). Reuses the shared prefix-sum
+   frames with the snippet's canonical example.
+   Mounts on code/prefixsum.
+   ============================================================ */
+
+VIZ_CONFIG['prefixsum'] = {
+    title: 'Prefix Sum — O(1) range-sum queries',
+    family: 'prefix-sum',
+    defaultState: { array: [2, 3, 5, 1], l: 0, r: 2 },
+    inputs: [
+        { key: 'array', label: 'Array', value: '2, 3, 5, 1', placeholder: '2, 3, 5, 1', parse: vizParseList },
+        { key: 'l', label: 'Query l', value: '0', placeholder: '0', parse: function (s) { return parseInt(s, 10) || 0; } },
+        { key: 'r', label: 'Query r', value: '2', placeholder: '2', parse: function (s) { return parseInt(s, 10) || 0; } }
+    ],
+    legend: [
+        { label: 'reading a[i]', color: 'vz-active' },
+        { label: 'updated prefix', color: 'vz-found' },
+        { label: 'query range', color: 'vz-compare' }
+    ],
+    stepMs: 1000,
+    simulate: vizPrefixSumFrames
+};
+
+/* -------- module: viz/problems/snippets/04-diffarray.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/snippets/04-diffarray
+   Difference Array (snippet variant): range additions in O(1)
+   using the shared diff-array frames with the snippet example
+   (+3 on [1,3], +2 on [2,4] over five slots).
+   Mounts on code/diffarray.
+   ============================================================ */
+
+VIZ_CONFIG['diffarray'] = {
+    title: 'Difference Array — O(1) range updates',
+    family: 'difference-array',
+    defaultState: {
+        array: [0, 0, 0, 0, 0],
+        updates: [
+            { val: 3, l: 1, r: 3 },
+            { val: 2, l: 2, r: 4 }
+        ]
+    },
+    inputs: [
+        { key: 'array', label: 'Base array', value: '0, 0, 0, 0, 0', placeholder: '0, 0, 0, 0, 0', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'update start', color: 'vz-left' },
+        { label: 'update end', color: 'vz-right' },
+        { label: 'materialized', color: 'vz-found' },
+        { label: 'reading', color: 'vz-active' }
+    ],
+    stepMs: 1000,
+    simulate: vizDiffArrayFrames
+};
+
+/* -------- module: viz/problems/snippets/05-maxsubarray.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/snippets/05-maxsubarray
+   Maximum Subarray (Kadane). Reuses the shared kadane frames with
+   the canonical snippet example [-2,1,-3,4,-1,2,1,-5,4] -> 6.
+   Mounts on code/maxsubarray.
+   ============================================================ */
+
+VIZ_CONFIG['maxsubarray'] = {
+    title: 'Maximum Subarray — Kadane\u2019s algorithm',
+    family: 'kadane',
+    defaultState: { array: [-2, 1, -3, 4, -1, 2, 1, -5, 4] },
+    inputs: [
+        { key: 'array', label: 'Array', value: '-2, 1, -3, 4, -1, 2, 1, -5, 4', placeholder: '-2, 1, -3, 4, -1, 2, 1, -5, 4', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'current subarray', color: 'vz-swap' },
+        { label: 'best subarray', color: 'vz-found' },
+        { label: 'examining', color: 'vz-active' }
+    ],
+    stepMs: 1100,
+    simulate: vizKadaneFrames
+};
+
+/* -------- module: viz/problems/snippets/06-windowmax.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/snippets/06-windowmax
+   Maximum Sum of a Fixed-Window (snippet variant). Reuses the
+   shared sliding-window frames with the snippet example
+   [1,4,2,10,23,3,1,0,20], k=4 -> best 39.
+   Mounts on code/windowmax.
+   ============================================================ */
+
+VIZ_CONFIG['windowmax'] = {
+    title: 'Maximum Sum of a Window of Size k — sliding window',
+    family: 'sliding-window',
+    defaultState: { array: [1, 4, 2, 10, 23, 3, 1, 0, 20], k: 4 },
+    inputs: [
+        { key: 'array', label: 'Array', value: '1, 4, 2, 10, 23, 3, 1, 0, 20', placeholder: '1, 4, 2, 10, 23, 3, 1, 0, 20', parse: vizParseList },
+        { key: 'k', label: 'Window size k', value: '4', placeholder: '4', parse: function (s) { return parseInt(s, 10) || 1; } }
+    ],
+    legend: [
+        { label: 'window', color: 'vz-swap' },
+        { label: 'current index', color: 'vz-active' },
+        { label: 'best window', color: 'vz-found' }
+    ],
+    stepMs: 1000,
+    simulate: vizSlidingWindowFrames
+};
+
+/* -------- module: viz/problems/snippets/07-twopointer.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/snippets/07-twopointer
+   Two Pointers (snippet variant). Reuses the shared two-pointers
+   frames with the snippet example [1,2,3,4,6], target 6.
+   Mounts on code/twopointer.
+   ============================================================ */
+
+VIZ_CONFIG['twopointer'] = {
+    title: 'Two Pointers — find a pair summing to target',
+    family: 'two-pointers',
+    defaultState: { array: [1, 2, 3, 4, 6], target: 6 },
+    inputs: [
+        { key: 'array', label: 'Array (sorted)', value: '1, 2, 3, 4, 6', placeholder: '1, 2, 3, 4, 6', parse: vizParseList },
+        { key: 'target', label: 'Target', value: '6', placeholder: '6', parse: function (s) { return parseInt(s, 10) || 0; } }
+    ],
+    legend: [
+        { label: 'left pointer', color: 'vz-left' },
+        { label: 'right pointer', color: 'vz-right' },
+        { label: 'found pair', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizTwoPointersFrames
+};
+
+/* -------- module: viz/problems/snippets/08-binsearch.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/snippets/08-binsearch
+   Binary Search (snippet variant). Reuses the shared binary-search
+   frames with the snippet example [1,3,5,7,9], target 7.
+   Mounts on code/binsearch.
+   ============================================================ */
+
+VIZ_CONFIG['binsearch'] = {
+    title: 'Binary Search — halve the search space',
+    family: 'binary-search',
+    defaultState: { array: [1, 3, 5, 7, 9], target: 7 },
+    inputs: [
+        { key: 'array', label: 'Array (sorted)', value: '1, 3, 5, 7, 9', placeholder: '1, 3, 5, 7, 9', parse: vizParseList },
+        { key: 'target', label: 'Target', value: '7', placeholder: '7', parse: function (s) { return parseInt(s, 10) || 0; } }
+    ],
+    legend: [
+        { label: 'low', color: 'vz-left' },
+        { label: 'high', color: 'vz-right' },
+        { label: 'mid', color: 'vz-active' },
+        { label: 'found', color: 'vz-found' }
+    ],
+    stepMs: 1150,
+    simulate: vizBinarySearchFrames
+};
+
+/* -------- module: viz/problems/snippets/09-freqcount.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/snippets/09-freqcount
+   Frequency Count (snippet variant). Reuses the shared hashing
+   frames with the snippet example [4,2,4,5,2,2,4,4].
+   Mounts on code/freqcount.
+   ============================================================ */
+
+VIZ_CONFIG['freqcount'] = {
+    title: 'Frequency Count — hashmap tallies',
+    family: 'hashing',
+    defaultState: { array: [4, 2, 4, 5, 2, 2, 4, 4] },
+    inputs: [
+        { key: 'array', label: 'Array', value: '4, 2, 4, 5, 2, 2, 4, 4', placeholder: '4, 2, 4, 5, 2, 2, 4, 4', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'counting', color: 'vz-active' },
+        { label: 'most frequent', color: 'vz-found' }
+    ],
+    stepMs: 1000,
+    simulate: vizHashingFrames
+};
+
+/* -------- module: viz/problems/snippets/10-selsort.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/snippets/10-selsort
+   Selection Sort (snippet variant). Reuses the shared sorting
+   frames pinned to selection sort with [5,2,8,1,3].
+   Mounts on code/selsort.
+   ============================================================ */
+
+VIZ_CONFIG['selsort'] = {
+    title: 'Selection Sort — place the minimum each pass',
+    family: 'sorting',
+    defaultState: { array: [5, 2, 8, 1, 3], algo: 'selection' },
+    inputs: [
+        { key: 'array', label: 'Array', value: '5, 2, 8, 1, 3', placeholder: '5, 2, 8, 1, 3', parse: vizParseList }
+    ],
+    legend: [
+        { label: 'current min', color: 'vz-left' },
+        { label: 'comparing', color: 'vz-compare' },
+        { label: 'sorted prefix', color: 'vz-found' },
+        { label: 'swap', color: 'vz-swap' }
+    ],
+    stepMs: 1050,
+    simulate: vizSortingFrames
+};
+
+/* -------- module: viz/problems/snippets/11-intervalmerge.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - module: viz/problems/snippets/11-intervalmerge
+   Merge Intervals (snippet variant). Reuses the shared
+   merge-intervals frames with the snippet example
+   [[1,3],[2,6],[8,10],[15,18]].
+   Mounts on code/intervalmerge.
+   ============================================================ */
+
+VIZ_CONFIG['intervalmerge'] = {
+    title: 'Merge Intervals — sort by start, merge overlaps',
+    family: 'merge-intervals',
+    defaultState: { intervals: [[1, 3], [2, 6], [8, 10], [15, 18]] },
+    inputs: [
+        { key: 'intervals', label: 'Intervals (pairs with ;)', value: '1 3; 2 6; 8 10; 15 18', placeholder: '1 3; 2 6; 8 10; 15 18', parse: vizParseIntervals }
+    ],
+    legend: [
+        { label: 'current interval', color: 'vz-compare' },
+        { label: 'merging into', color: 'vz-active' }
+    ],
+    stepMs: 1000,
+    simulate: vizMergeIntervalsFrames
+};
+
 /* -------- module: viz/topics/01-traversal.js -------- */
 
 /* ============================================================
