@@ -2578,6 +2578,174 @@ body {
 .vz-svg-edge { stroke: var(--border-primary); stroke-width: 2; }
 .vz-svg-label { fill: var(--text-primary); font-size: 11px; font-family: var(--font-mono); }
 
+/* ============================================
+   Immersive Visual Layer (src/js/core/13-immersive-layer.js)
+   Focus spotlights, particle bursts, code glow beam,
+   ambient living background. All animation via transforms/
+   opacity; reduced-motion shuts the whole layer off.
+   ============================================ */
+
+/* dim + blur the page behind a radial vignette centred on stage */
+.imm-focus-overlay-holder {
+    display: none;
+}
+
+body.imm-focus .sidebar,
+body.imm-focus .content-header,
+body.imm-focus .article-footer {
+    filter: blur(2px);
+    pointer-events: none;
+    transition: filter 0.4s ease;
+}
+
+body.imm-focus .content {
+    --imm-overlay: rgba(0, 0, 0, 0.35);
+}
+
+#article .viz {
+    position: relative;
+    z-index: 2;
+    transition: box-shadow 0.4s ease;
+}
+
+body.imm-focus #article .viz {
+    box-shadow:
+        0 0 0 1px var(--accent-primary),
+        0 0 32px 2px var(--accent-primary);
+    z-index: 20;
+}
+
+#imm-focus-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    background: radial-gradient(
+        ellipse at var(--imm-cx, 50%) var(--imm-cy, 50%),
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0) 34%,
+        rgba(0, 0, 0, 0.42) 74%,
+        rgba(0, 0, 0, 0.6) 100%
+    );
+    opacity: 0;
+    pointer-events: none;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    will-change: opacity;
+}
+
+[data-theme="dark"] #imm-focus-overlay {
+    background: radial-gradient(
+        ellipse at var(--imm-cx, 50%) var(--imm-cy, 50%),
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0) 30%,
+        rgba(0, 0, 0, 0.55) 74%,
+        rgba(0, 0, 0, 0.75) 100%
+    );
+}
+
+/* ---- ambient living background (CSS @keyframes only) ---- */
+
+.imm-ambient-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(38% 30% at 22% 18%, rgba(9, 105, 218, 0.10), transparent 70%),
+        radial-gradient(42% 34% at 82% 76%, rgba(130, 80, 223, 0.08), transparent 72%);
+    background-size: 160% 160%;
+    animation: immDrift 26s ease-in-out infinite alternate;
+    opacity: 0.6;
+}
+
+[data-theme="dark"] .imm-ambient-layer {
+    background:
+        radial-gradient(38% 30% at 22% 18%, rgba(88, 166, 255, 0.10), transparent 70%),
+        radial-gradient(42% 34% at 82% 76%, rgba(137, 87, 229, 0.09), transparent 72%);
+}
+
+@keyframes immDrift {
+    0%   { background-position: 0% 0%, 100% 100%; }
+    100% { background-position: 100% 100%, 0% 0%; }
+}
+
+/* ---- code "glow travel" beam over the active code line ---- */
+
+.imm-beam {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 20px;
+    background: linear-gradient(to right, transparent, var(--accent-primary), transparent);
+    box-shadow: 0 0 12px var(--accent-primary);
+    opacity: 0;
+    pointer-events: none;
+    transform-origin: left center;
+    will-change: transform, opacity;
+}
+
+.explain-lines li {
+    transition: background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.explain-lines li.active {
+    background: var(--viz-soft);
+    box-shadow: inset 3px 0 0 var(--accent-primary);
+}
+
+/* ---- success burst: ringing + particle dust (span children in .viz-stage) ---- */
+
+.imm-ring {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    margin-left: -4px;
+    margin-top: -4px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-success);
+    pointer-events: none;
+    z-index: 5;
+}
+
+.imm-particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    margin-left: -3px;
+    margin-top: -3px;
+    border-radius: 50%;
+    background: var(--accent-success);
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* ---- narration chip tick ---- */
+
+.imm-tick {
+    display: inline-block;
+    margin-left: 6px;
+    color: var(--accent-success);
+    font-size: 13px;
+    font-weight: 700;
+    will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .imm-beam, .imm-ring, .imm-particle, .imm-tick { display: none; }
+    #imm-focus-overlay { display: none; }
+    .imm-ambient-layer { display: none; }
+    body.imm-focus .sidebar,
+    body.imm-focus .content-header,
+    body.imm-focus .article-footer { filter: none; }
+    @keyframes immDrift { 0%, 100% { background-position: 0% 0%, 100% 100%; } }
+}
+
+@media print {
+    #imm-focus-overlay, .imm-ambient-layer, .imm-ring, .imm-particle, .imm-beam, .imm-tick {
+        display: none !important;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .viz-cell, .viz-ptr, .viz-window, .viz-bar { transition: none; }
 }
