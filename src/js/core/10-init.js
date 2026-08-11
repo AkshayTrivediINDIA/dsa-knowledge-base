@@ -61,6 +61,8 @@ if (typeof module !== 'undefined' && module.exports) {
         doubtRender: doubtRender,
         doubtAskUrl: doubtAskUrl,
         doubtSetServerUrl: doubtSetServerUrl,
-        doubtClear: clearDoubtHistory
+        doubtClear: clearDoubtHistory,
+        immersiveEnter: immersiveEnter,
+        immersiveExit: immersiveExit
     };
 }

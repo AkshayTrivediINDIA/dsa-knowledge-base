@@ -986,6 +986,7 @@ function setProgress(pct) {
 function renderHome() {
     currentPath = 'home';
     document.title = 'DSA Knowledge Base — Dashboard';
+    safe(immersiveExit);
     safe(vizTeardownAll);
 
     var activeCount = 0;
@@ -1077,6 +1078,7 @@ function renderComingSoon(dsId) {
 
     currentPath = 'coming-soon/' + dsId;
     document.title = card.title + ' — Coming Soon — DSA Knowledge Base';
+    safe(immersiveExit);
     safe(vizTeardownAll);
 
     var topicsList = '';
@@ -1125,11 +1127,13 @@ function renderPage(path) {
     if (!page) { renderHome(); return; }
     currentPath = path;
     document.title = page.title + ' — DSA Knowledge Base';
+    safe(immersiveExit);
     safe(vizTeardownAll);
     $('#article').innerHTML = renderMarkdown(page.content);
     safe(initLangTabsAll);
     safe(initScrollReveal);
     safe(vizInitForPage);
+    safe(immersiveEnter);
     renderBreadcrumb(page.crumbs || ['Home', page.title]);
     updateNavActive(path);
     expandToCurrent();
@@ -1831,7 +1835,9 @@ if (typeof module !== 'undefined' && module.exports) {
         doubtRender: doubtRender,
         doubtAskUrl: doubtAskUrl,
         doubtSetServerUrl: doubtSetServerUrl,
-        doubtClear: clearDoubtHistory
+        doubtClear: clearDoubtHistory,
+        immersiveEnter: immersiveEnter,
+        immersiveExit: immersiveExit
     };
 }
 
