@@ -70,3 +70,37 @@ VIZ_CONFIG['subarraysumk'] = {
     stepMs: 1150,
     simulate: vizIvSubarraySumKFrames
 };
+
+/* ---------- Focus Mode config ---------- */
+
+FOCUS_CONFIG['subarraysumk'] = {
+    title: 'Subarray Sum Equals K — Focus Mode',
+    viz: 'subarraysumk',
+    codeGroup: 'subarraysumk',
+    tagline: 'One sum, many ears to compare.',
+    lead: 'Check every window, or use prefix sums to close matching windows in one pass.',
+    optLabel: 'Prefix-sum counter',
+    beats: [
+        {
+            narr: 'Brute force tries every starting point and grows each window — for the sample [1,1,1] with k=2 there are 6 windows to check.',
+            brute: 1,
+            opt: 1
+        },
+        {
+            narr: 'Each window adds up on its own, so the work is O(n\u00b2) in the worst case — too slow for long arrays.',
+            brute: 6,
+            opt: 2
+        },
+        {
+            narr: 'Track the running prefix sum and count how many times each prefix value was seen. If prefix - k was seen before, every such earlier prefix closes a valid subarray. O(n) with one map.',
+            brute: 6,
+            opt: 3
+        }
+    ],
+    recap:
+        'A subarray from i+1 to j has sum k exactly when prefix[j] - prefix[i] = k, i.e. prefix[i] = prefix[j] - k. ' +
+        'So walk left to right, remember how often each prefix sum has occurred in a counter map, and at each position j ' +
+        'add the count of the value prefix[j] - k — every one of those earlier prefixes is the start of a valid subarray. ' +
+        'One O(n) pass with a lookup per step replaces the O(n\u00b2) window search.',
+    recapTitle: 'Concept recap — how do prefix sums count subarrays?'
+};

@@ -70,3 +70,36 @@ VIZ_CONFIG['longestsubstr'] = {
     stepMs: 1150,
     simulate: vizIvLongestSubstrFrames
 };
+
+/* ---------- Focus Mode config ---------- */
+
+FOCUS_CONFIG['longestsubstr'] = {
+    title: 'Longest Substring Without Repeating Characters — Focus Mode',
+    viz: 'longestsubstr',
+    codeGroup: 'longestsubstr',
+    tagline: 'One window, always unique.',
+    lead: 'Every substring is far too many — keep a shrinking window and never re-scan it.',
+    optLabel: 'Sliding window',
+    beats: [
+        {
+            narr: 'Brute force builds every substring and checks each for repeats. For a string of length n that is roughly n\u00b2/2 substrings.',
+            brute: 1,
+            opt: 1
+        },
+        {
+            narr: 'Checking each candidate substring for duplicates on its own adds yet another factor: O(n\u00b2) to O(n\u00b3) work in total.',
+            brute: 21,
+            opt: 4
+        },
+        {
+            narr: 'A sliding window keeps exactly one valid substring. When a char repeats, jump the start past its last appearance — O(n) time, window never re-scanned.',
+            brute: 21,
+            opt: 7
+        }
+    ],
+    recap:
+        'The window is a contiguous run of characters that currently has no repeats. Grow it one character at a time on the right; ' +
+        'if the new character already appears inside the window, slide the left edge past that earlier copy. ' +
+        'Window size never needs a full re-scan, so the whole string is processed in a single O(n) pass while the longest window seen is remembered.',
+    recapTitle: 'Concept recap — what is the window doing?'
+};

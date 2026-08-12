@@ -972,8 +972,14 @@ function bindHashRouter() {
 function renderPath(path) {
     if (path === 'home') renderHome();
     else if (path.indexOf('coming-soon/') === 0) renderComingSoon(path.replace('coming-soon/', ''));
+    else if (path.indexOf('focus/') === 0 && hasFocusConfig(path)) renderFocus(path);
     else if (DB[path]) renderPage(path);
     else renderHome();
+}
+
+function hasFocusConfig(path) {
+    return typeof FOCUS_CONFIG !== 'undefined' &&
+        !!FOCUS_CONFIG[String(path).replace(/^focus\//, '')];
 }
 
 function setProgress(pct) {
@@ -987,6 +993,7 @@ function renderHome() {
     currentPath = 'home';
     document.title = 'DSA Knowledge Base — Dashboard';
     safe(immersiveExit);
+    safe(focusExit);
     safe(vizTeardownAll);
 
     var activeCount = 0;
@@ -1079,6 +1086,7 @@ function renderComingSoon(dsId) {
     currentPath = 'coming-soon/' + dsId;
     document.title = card.title + ' — Coming Soon — DSA Knowledge Base';
     safe(immersiveExit);
+    safe(focusExit);
     safe(vizTeardownAll);
 
     var topicsList = '';
@@ -1128,6 +1136,7 @@ function renderPage(path) {
     currentPath = path;
     document.title = page.title + ' — DSA Knowledge Base';
     safe(immersiveExit);
+    safe(focusExit);
     safe(vizTeardownAll);
     $('#article').innerHTML = renderMarkdown(page.content);
     safe(initLangTabsAll);
@@ -1786,6 +1795,12 @@ function initLangTabsAll() {
    module.exports below and is shared by the viz modules. */
 var VIZ_CONFIG = {};
 
+/* focus-mode config container — keyed by problem id, populated by the
+   src/js/viz/** modules (one FOCUS_CONFIG entry per focus-enabled problem).
+   Declared here in core so it exists before module.exports and is shared
+   app-wide, mirroring VIZ_CONFIG above. */
+var FOCUS_CONFIG = {};
+
 function safe(fn) {
     try { fn(); } catch (e) { /* never let one subsystem break the app */ }
 }
@@ -1801,6 +1816,7 @@ function init() {
     safe(renderBookmarks);
     safe(bindDoubt);
     safe(bindHashRouter);
+    safe(focusInjectLinks);
     renderPath(parseHashPath() || parsePath());
 }
 
@@ -1827,6 +1843,7 @@ if (typeof module !== 'undefined' && module.exports) {
         pageFile: pageFile,
         refUrl: refUrl,
         VIZ_CONFIG: VIZ_CONFIG,
+        FOCUS_CONFIG: FOCUS_CONFIG,
         Visualizer: Visualizer,
         bindDoubt: bindDoubt,
         openDoubt: openDoubt,
@@ -1837,7 +1854,8 @@ if (typeof module !== 'undefined' && module.exports) {
         doubtSetServerUrl: doubtSetServerUrl,
         doubtClear: clearDoubtHistory,
         immersiveEnter: immersiveEnter,
-        immersiveExit: immersiveExit
+        immersiveExit: immersiveExit,
+        focusInjectLinks: focusInjectLinks
     };
 }
 
@@ -3341,10 +3359,12 @@ function immBridgeGroup() {
     var cfg = null;
     if (typeof VIZ_CONFIG !== 'undefined') {
         cfg = VIZ_CONFIG[currentPath] ||
-            (currentPath.indexOf('code/') === 0 ? VIZ_CONFIG[currentPath.slice(5)] : null);
+            (currentPath.indexOf('code/') === 0 ? VIZ_CONFIG[currentPath.slice(5)] : null) ||
+            (currentPath.indexOf('focus/') === 0 ? VIZ_CONFIG[currentPath.slice(6)] : null);
     }
     if (cfg && cfg.family) return cfg.family;
     if (currentPath.indexOf('code/') === 0) return currentPath.slice(5);
+    if (currentPath.indexOf('focus/') === 0) return currentPath.slice(6);
     return '';
 }
 
@@ -3487,6 +3507,260 @@ function immersiveExit() {
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports.IMMERSIVE_CONFIG = IMMERSIVE_CONFIG;
+}
+
+/* -------- module: core/14-focus-env.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - script.js (module: focus-env)
+   Focus Mode — full-screen teaching environment.
+   Mounts a normal Visualizer on a .focus-stage mount, prefaces it
+   with an animated "why this approach" comparison (brute force vs
+   the real solution, as a pair of operation-count bars) and follows
+   it with a plain-English concept recap + the synced code panel.
+
+   Config-driven: every problem that registers a FOCUS_CONFIG entry
+   (see src/js/viz/problems/**) automatically gets a focus/<id> page.
+   - Reuses the existing Visualizer + VIZ_CONFIG simulate() pattern.
+   - Reuses the existing .code-explain[data-group] blocks (pulled from
+     the generated code/<group> DB entry, never duplicated by hand).
+   - Reuses the immersive-layer Cockpit Bridge beam via data-group.
+   - Reduced motion (VIZ_REDUCED) jumps to final states, no tweens.
+   Only transform/opacity are ever animated.
+   ============================================================ */
+
+/* ---------- helpers ---------- */
+
+function focusIdFromPath(path) {
+    return String(path || '').replace(/^focus\//, '');
+}
+
+function focusConfigFor(path) {
+    var id = focusIdFromPath(path);
+    return (typeof FOCUS_CONFIG !== 'undefined' && FOCUS_CONFIG[id]) ? FOCUS_CONFIG[id] : null;
+}
+
+function focusBackHref(cfg) {
+    if (cfg && cfg.from) return pageFile(cfg.from);
+    if (cfg && cfg.codeGroup) return pageFile('code/' + cfg.codeGroup);
+    return pageFile('home');
+}
+
+/* grab every ~~~explain fence out of a code page's raw content so the
+   focus page can re-render the exact same blocks (lang tabs + beam) */
+function focusExplainMarkdown(codeGroup) {
+    var page = (typeof DB !== 'undefined') ? DB['code/' + codeGroup] : null;
+    var src = (page && page.content) ? page.content : '';
+    var out = [];
+    var lines = src.split('\n');
+    var i = 0;
+    while (i < lines.length) {
+        var m = lines[i].match(/^~~~(\w*)\s*$/);
+        if (m && m[1] === 'explain') {
+            var buf = [lines[i]];
+            i++;
+            while (i < lines.length && !/^~~~\s*$/.test(lines[i])) { buf.push(lines[i]); i++; }
+            if (i < lines.length) buf.push(lines[i]);
+            i++;
+            out.push(buf.join('\n'));
+        } else {
+            i++;
+        }
+    }
+    return out.join('\n\n');
+}
+
+/* ---------- comparison widget ("why, not just what") ----------
+   The widget always compares two approaches: the baseline "brute"
+   bar and the intended "opt" bar. Labels are config-driven so the
+   same component narrates Two Sum (Hash map), Move Zeroes (Two
+   pointers), Boyer-Moore, etc. */
+
+function focusCompareInit(widget, cfg) {
+    var beats = cfg.beats;
+    var bruteLabel = cfg.bruteLabel || 'Brute force';
+    var optLabel = cfg.optLabel || 'Optimal';
+    if (!widget || !beats || !beats.length) return;
+    var idx = 0;
+    var maxOps = 1;
+    beats.forEach(function (b) {
+        if (b.brute > maxOps) maxOps = b.brute;
+        if (b.opt > maxOps) maxOps = b.opt;
+    });
+
+    var narr = widget.querySelector('[data-focus-narr]');
+    var step = widget.querySelector('[data-focus-step]');
+    var prevBtn = widget.querySelector('[data-focus-prev]');
+    var nextBtn = widget.querySelector('[data-focus-next]');
+    var fills = {
+        brute: widget.querySelector('[data-focus-fill="brute"]'),
+        opt: widget.querySelector('[data-focus-fill="opt"]')
+    };
+    var counts = {
+        brute: widget.querySelector('[data-focus-count="brute"]'),
+        opt: widget.querySelector('[data-focus-count="opt"]')
+    };
+    var labels = {
+        brute: widget.querySelector('[data-focus-label="brute"]'),
+        opt: widget.querySelector('[data-focus-label="opt"]')
+    };
+    if (labels.brute) labels.brute.textContent = bruteLabel;
+    if (labels.opt) labels.opt.textContent = optLabel;
+
+    function setBeat(i, animate) {
+        var b = beats[i];
+        idx = i;
+        if (narr) narr.textContent = b.narr;
+        if (step) step.textContent = (i + 1) + ' / ' + beats.length;
+        var setBar = function (key, val) {
+            var pct = val / maxOps;
+            if (fills[key]) {
+                if (animate && !VIZ_REDUCED) {
+                    vizTween(fills[key], { scaleY: pct }, 0.5, 'power2.out');
+                } else {
+                    (function (el) { var g = VIZ_GSAP(); if (g) g.set(el, { scaleY: pct }); else el.style.transform = 'scaleY(' + pct + ')'; })(fills[key]);
+                }
+            }
+            if (counts[key]) counts[key].textContent = val;
+        };
+        setBar('brute', b.brute);
+        setBar('opt', b.opt);
+        if (prevBtn) prevBtn.disabled = (i === 0);
+        if (nextBtn) nextBtn.disabled = (i >= beats.length - 1);
+    }
+
+    if (prevBtn) prevBtn.addEventListener('click', function () { if (idx > 0) setBeat(idx - 1, true); });
+    if (nextBtn) nextBtn.addEventListener('click', function () { if (idx < beats.length - 1) setBeat(idx + 1, true); });
+
+    /* reduced motion jumps straight to the final beat (the "answer") */
+    setBeat(VIZ_REDUCED ? beats.length - 1 : 0, false);
+}
+
+/* ---------- renderer ---------- */
+
+function renderFocus(path) {
+    var cfg = focusConfigFor(path);
+    if (!cfg) { renderHome(); return; }
+    var id = focusIdFromPath(path);
+
+    currentPath = path;
+    document.title = cfg.title + ' — DSA Knowledge Base';
+    safe(immersiveExit);
+    safe(vizTeardownAll);
+    focusExit();
+
+    var vizCfg = (typeof VIZ_CONFIG !== 'undefined') ? VIZ_CONFIG[cfg.viz || id] : null;
+
+    var beatRows = '';
+    if (cfg.beats && cfg.beats.length) {
+        beatRows =
+            '<p class="focus-narr" data-focus-narr></p>' +
+            '<div class="focus-compare">' +
+                '<div class="focus-compare-row">' +
+                    '<span class="focus-compare-label" data-focus-label="brute">Brute force</span>' +
+                    '<span class="focus-compare-track"><span class="focus-compare-fill focus-brute" data-focus-fill="brute"></span></span>' +
+                    '<span class="focus-compare-count" data-focus-count="brute">0</span>' +
+                '</div>' +
+                '<div class="focus-compare-row">' +
+                    '<span class="focus-compare-label" data-focus-label="opt">Optimal</span>' +
+                    '<span class="focus-compare-track"><span class="focus-compare-fill focus-hash" data-focus-fill="opt"></span></span>' +
+                    '<span class="focus-compare-count" data-focus-count="opt">0</span>' +
+                '</div>' +
+                '<div class="focus-compare-controls">' +
+                    '<button type="button" class="focus-btn" data-focus-prev>&#8249; Prev</button>' +
+                    '<span class="focus-compare-step" data-focus-step></span>' +
+                    '<button type="button" class="focus-btn" data-focus-next>Next &#8250;</button>' +
+                '</div>' +
+            '</div>';
+    }
+
+    var stageHtml = vizCfg
+        ? '<div class="focus-block focus-stage-block">' +
+              '<h2 class="focus-h2">Watch it one step at a time</h2>' +
+              '<div class="viz focus-stage" data-focus-stage></div>' +
+              '<button type="button" class="focus-btn focus-btn-start" data-focus-start>&#9654; Start simulation</button>' +
+          '</div>'
+        : '';
+
+    var recapHtml = cfg.recap
+        ? '<section class="focus-block focus-recap-block">' +
+              '<details class="focus-recap">' +
+                  '<summary>' + escapeHtml(cfg.recapTitle || 'Concept recap') + '</summary>' +
+                  '<p>' + escapeHtml(cfg.recap) + '</p>' +
+              '</details>' +
+          '</section>'
+        : '';
+
+    var codeMd = focusExplainMarkdown(cfg.codeGroup || id);
+    var codeHtml = codeMd
+        ? '<section class="focus-block focus-code-block">' +
+              '<details class="focus-code" open>' +
+                  '<summary>The code, line by line</summary>' +
+                  '<div class="focus-code-body">' + renderMarkdown(codeMd) + '</div>' +
+              '</details>' +
+          '</section>'
+        : '';
+
+    $('#article').innerHTML =
+        '<div class="focus-env"' + ' data-focus-id="' + escapeHtml(id) + '">' +
+            '<header class="focus-env-head">' +
+                '<a class="focus-back" href="' + focusBackHref(cfg) + '">&#8592; Back</a>' +
+                '<span class="focus-env-title">' + escapeHtml(cfg.title || 'Focus Mode') + '</span>' +
+            '</header>' +
+            '<section class="focus-block focus-intro-block">' +
+                '<h1 class="focus-h1">' + escapeHtml(cfg.tagline || 'Why one pass, not two?') + '</h1>' +
+                '<p class="focus-lead">' + escapeHtml(cfg.lead || 'Compare the naive approach with the efficient one before looking at the code.') + '</p>' +
+                beatRows +
+            '</section>' +
+            stageHtml +
+            recapHtml +
+            codeHtml +
+        '</div>';
+
+    document.body.classList.add('focus-mode');
+
+    if (vizCfg) {
+        var mount = $('#article [data-focus-stage]');
+        if (mount) {
+            var viz = new Visualizer(mount, vizCfg);
+            focusWireStart(viz);
+        }
+    }
+
+    if (beatRows) {
+        var widget = $('#article [data-focus-narr]');
+        focusCompareInit(widget ? widget.parentNode : null, cfg);
+    }
+
+    safe(function () { initLangTabs(document); initBlockSwitchers(document); });
+    safe(initScrollReveal);
+}
+
+/* "Start simulation": scroll the stage into view and let it play.
+   Paused by default so the learner can finish the intro first. */
+function focusWireStart(viz) {
+    var btn = $('#article [data-focus-start]');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+        if (viz.stage) viz.stage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (!viz.reduced) setTimeout(function () { viz.play(); }, 350);
+        else viz.goto(viz.frames.length - 1);
+    });
+}
+
+function focusExit() {
+    if (typeof document !== 'undefined') document.body.classList.remove('focus-mode');
+}
+
+function focusInitForPage() {
+    var path = (typeof currentPath !== 'undefined') ? currentPath : '';
+    if (path.indexOf('focus/') === 0) renderFocus(path);
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports.renderFocus = renderFocus;
+    module.exports.focusInitForPage = focusInitForPage;
+    module.exports.focusExit = focusExit;
 }
 
 /* -------- module: content/11-home.js -------- */
@@ -16041,6 +16315,58 @@ DB["learn/references"] = {
    it exists before the module.exports and is shared app-wide.
    ============================================================ */
 
+/* -------- module: viz/98-focus-links.js -------- */
+
+/* ============================================================
+   DSA Knowledge Base - script.js (module: viz:98-focus-links)
+   Focus Mode navigation links.
+   Adds a "Focus mode" callout to every code page (code/<group>)
+   whose problem registers a FOCUS_CONFIG entry. Must run lazily
+   at init() — not as an IIFE — because the viz modules populate
+   FOCUS_CONFIG after the core content modules evaluate; calling it
+   from init() (DOMContentLoaded) guarantees every entry exists.
+   ============================================================ */
+
+function focusInjectLinks() {
+    if (typeof FOCUS_CONFIG === 'undefined' || !FOCUS_CONFIG) return;
+    if (typeof DB === 'undefined' || !DB) return;
+
+    Object.keys(FOCUS_CONFIG).forEach(function (id) {
+        var cfg = FOCUS_CONFIG[id];
+        var group = cfg.codeGroup || id;
+        var page = DB['code/' + group];
+        if (!page) return;
+        if (!(cfg.beats && cfg.beats.length)) return;
+        if (page.content.indexOf('focus/' + id) !== -1) return;
+
+        var linkLine = '> **Focus mode:** an interactive guide with an animated brute-force vs hash-map comparison. [Open Focus Mode](focus/' + id + ')';
+
+        var lines = page.content.split('\n');
+        var out = [];
+        var inserted = false;
+        var inQuote = false;
+        lines.forEach(function (line, i) {
+            out.push(line);
+            var next = lines[i + 1];
+            if (/^>\s?/.test(line)) inQuote = true;
+            if (inQuote && (i === lines.length - 1 || !/^>\s?/.test(next))) {
+                inQuote = false;
+                if (!inserted) {
+                    out.push('');
+                    out.push(linkLine);
+                    inserted = true;
+                }
+            }
+        });
+        if (!inserted) out.push('', linkLine);
+        page.content = out.join('\n');
+    });
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports.focusInjectLinks = focusInjectLinks;
+}
+
 /* -------- module: viz/problems/interview/01-twosum.js -------- */
 
 /* ============================================================
@@ -16114,6 +16440,44 @@ VIZ_CONFIG['twosum'] = {
     ],
     stepMs: 1150,
     simulate: vizIvTwoSumFrames
+};
+
+/* ---------- Focus Mode config ----------
+   Drives the full-screen teaching environment (see core/14-focus-env).
+   beats[] = the "why this approach" intro, one narration beat per row of
+   the operation-count comparison; brute/hash are cumulative operation
+   counts for the animated bars. recap = plain-English concept panel. */
+
+FOCUS_CONFIG['twosum'] = {
+    title: 'Two Sum — Focus Mode',
+    viz: 'twosum',
+    codeGroup: 'twosum',
+    tagline: 'Why two passes? No — one pass.',
+    lead: 'Compare the naive pair check with the hash-map walk before looking at the code.',
+    bruteLabel: 'Brute force',
+    optLabel: 'Hash map',
+    beats: [
+        {
+            narr: 'The naive way checks every pair. For 4 numbers that is 6 pairs to try — and the count explodes as the array grows.',
+            brute: 1,
+            opt: 1
+        },
+        {
+            narr: 'With brute force each new number multiplies the work: look at every pair again. That is O(n\u00b2) — too slow for big inputs.',
+            brute: 6,
+            opt: 2
+        },
+        {
+            narr: 'A hashmap remembers what we have already seen. Each number needs just one look-up, so one pass does it: O(n) time.',
+            brute: 6,
+            opt: 4
+        }
+    ],
+    recap:
+        'A hashmap is like a labelled box room. When you see a number, you write its value on a box and drop the position inside. ' +
+        'Later, to check "have I seen the partner of this number?", you open one box directly instead of searching every box. ' +
+        'A hashmap turns "did I already see this?" into a single, instant answer — that is what turns O(n\u00b2) pair-checking into one O(n) walk.',
+    recapTitle: 'Concept recap — what is a hash map?'
 };
 
 /* -------- module: viz/problems/interview/02-buysellstock.js -------- */
@@ -16197,6 +16561,39 @@ VIZ_CONFIG['buysellstock'] = {
     simulate: vizIvBuySellFrames
 };
 
+/* ---------- Focus Mode config ---------- */
+
+FOCUS_CONFIG['buysellstock'] = {
+    title: 'Best Time to Buy & Sell Stock — Focus Mode',
+    viz: 'buysellstock',
+    codeGroup: 'buysellstock',
+    tagline: 'Buy low, remember the low.',
+    lead: 'Compare every buy/sell pair, then realize just tracking the cheapest price so far is enough.',
+    optLabel: 'Min-so-far scan',
+    beats: [
+        {
+            narr: 'Brute force checks every buy/sell pair — for 6 days that is 15 pairs to evaluate.',
+            brute: 1,
+            opt: 1
+        },
+        {
+            narr: 'Each new day re-checks every earlier buy price: O(n\u00b2) pair evaluations.',
+            brute: 15,
+            opt: 6
+        },
+        {
+            narr: 'The optimum must buy at the cheapest price seen before the sell day. One pass tracking the minimum so far gives the best profit in O(n).',
+            brute: 15,
+            opt: 2
+        }
+    ],
+    recap:
+        'The best sell day sells at the highest profit, and that profit is always price[day] minus the cheapest price that came before. ' +
+        'So keep a running minimum as you walk forward and compute the profit at every day, remembering the largest. ' +
+        'One O(n) pass replaces O(n\u00b2) pair checking — you never need to look at a buy day twice.',
+    recapTitle: 'Concept recap — why is one low enough?'
+};
+
 /* -------- module: viz/problems/interview/03-movezeroes.js -------- */
 
 /* ============================================================
@@ -16262,6 +16659,39 @@ VIZ_CONFIG['movezeroes'] = {
     ],
     stepMs: 1150,
     simulate: vizIvMoveZeroesFrames
+};
+
+/* ---------- Focus Mode config ---------- */
+
+FOCUS_CONFIG['movezeroes'] = {
+    title: 'Move Zeroes — Focus Mode',
+    viz: 'movezeroes',
+    codeGroup: 'movezeroes',
+    tagline: 'Write first, ask questions later.',
+    lead: 'A read pointer scans and a write pointer packs — one pass, no extra array.',
+    optLabel: 'Two pointers',
+    beats: [
+        {
+            narr: 'The simple answer copies every non-zero into a new array, then fills the tail with zeroes — an extra array of the same size.',
+            brute: 1,
+            opt: 1
+        },
+        {
+            narr: 'Copying to a scratch array needs O(n) extra memory and two trips over the data.',
+            brute: 6,
+            opt: 2
+        },
+        {
+            narr: 'Two pointers do it in place: the read pointer scans, the write pointer marks where the next non-zero goes. O(n) time, O(1) space, order preserved.',
+            brute: 6,
+            opt: 4
+        }
+    ],
+    recap:
+        'The trick is a write pointer that only advances when a non-zero is placed. The read pointer sweeps the whole array once; ' +
+        'every time it finds a non-zero, that value is swapped into the write slot. ' +
+        'Zeroes are never actively moved — they are simply overtaken, so they end up untouched at the tail and the relative order of non-zeroes is preserved.',
+    recapTitle: 'Concept recap — why does the write pointer work?'
 };
 
 /* -------- module: viz/problems/interview/04-majorityelement.js -------- */
@@ -16341,6 +16771,39 @@ VIZ_CONFIG['majorityelement'] = {
     simulate: vizIvMajorityFrames
 };
 
+/* ---------- Focus Mode config ---------- */
+
+FOCUS_CONFIG['majorityelement'] = {
+    title: 'Majority Element — Focus Mode',
+    viz: 'majorityelement',
+    codeGroup: 'majorityelement',
+    tagline: 'Let the votes cancel out.',
+    lead: 'Boyer-Moore finds the majority in one pass and constant memory.',
+    optLabel: 'Boyer–Moore votes',
+    beats: [
+        {
+            narr: 'Brute force counts how often every distinct value appears. For n values that is n scans — or O(n\u00b2) work.',
+            brute: 1,
+            opt: 1
+        },
+        {
+            narr: 'A counter hashmap does it in O(n), but needs a bucket for every distinct value — O(n) memory too.',
+            brute: 16,
+            opt: 1
+        },
+        {
+            narr: 'Boyer-Moore pairs up equal and opposite votes. Because the majority appears more than half the time, the value left standing is it — O(n) time, O(1) space.',
+            brute: 16,
+            opt: 4
+        }
+    ],
+    recap:
+        'Think of a room where every value votes. Boyer-Moore keeps a running candidate: seeing the same value raises its count, ' +
+        'seeing anything else lowers it, and when the count hits zero a new candidate takes over. ' +
+        'The majority value can never be fully cancelled because it appears more than every other value combined — so it survives to the end.',
+    recapTitle: 'Concept recap — how do the votes cancel?'
+};
+
 /* -------- module: viz/problems/interview/05-containsduplicate.js -------- */
 
 /* ============================================================
@@ -16404,6 +16867,39 @@ VIZ_CONFIG['containsduplicate'] = {
     ],
     stepMs: 1150,
     simulate: vizIvContainsDupFrames
+};
+
+/* ---------- Focus Mode config ---------- */
+
+FOCUS_CONFIG['containsduplicate'] = {
+    title: 'Contains Duplicate — Focus Mode',
+    viz: 'containsduplicate',
+    codeGroup: 'containsduplicate',
+    tagline: 'Remember what you have already seen.',
+    lead: 'One scan with a hashset beats re-checking every pair.',
+    optLabel: 'Hashset',
+    beats: [
+        {
+            narr: 'Brute force compares every pair of values. For 4 numbers that is 6 pair comparisons — and it explodes as the array grows.',
+            brute: 1,
+            opt: 1
+        },
+        {
+            narr: 'Each new number re-checked against all earlier ones means O(n\u00b2) comparisons — 10 numbers \u2192 45 pairs. Too slow.',
+            brute: 6,
+            opt: 2
+        },
+        {
+            narr: 'A hashset remembers every value seen so far. One look-up per number settles the whole array: O(n) time.',
+            brute: 6,
+            opt: 4
+        }
+    ],
+    recap:
+        'A hashset is a collection that answers "have I seen this value before?" in one step, no matter how many values are stored. ' +
+        'Insert the current value, and immediately check whether it was already there — if it was, the array contains a duplicate. ' +
+        'That turns the O(n\u00b2) "compare everything with everything" scan into a single O(n) walk.',
+    recapTitle: 'Concept recap — what is a hashset used for?'
 };
 
 /* -------- module: viz/problems/interview/06-removeduplicates.js -------- */
@@ -16474,6 +16970,39 @@ VIZ_CONFIG['removeduplicates'] = {
     ],
     stepMs: 1150,
     simulate: vizIvRemoveDupFrames
+};
+
+/* ---------- Focus Mode config ---------- */
+
+FOCUS_CONFIG['removeduplicates'] = {
+    title: 'Remove Duplicates from Sorted Array — Focus Mode',
+    viz: 'removeduplicates',
+    codeGroup: 'removeduplicates',
+    tagline: 'The array is sorted — use it.',
+    lead: 'A read pointer scans while a write pointer keeps only the first of each run.',
+    optLabel: 'Write pointer',
+    beats: [
+        {
+            narr: 'Brute force would shift the whole tail left after each duplicate found — O(n) copying per duplicate, O(n\u00b2) worst case.',
+            brute: 1,
+            opt: 1
+        },
+        {
+            narr: 'A fresh copy that skips duplicates needs an extra array and a second trip.',
+            brute: 6,
+            opt: 2
+        },
+        {
+            narr: 'One scan does it: because the input is sorted, each new distinct value simply overwrites the next write slot. O(n) time, O(1) space.',
+            brute: 6,
+            opt: 4
+        }
+    ],
+    recap:
+        'Since the array is already sorted, equal values always sit side by side. The read pointer walks forward; ' +
+        'whenever it meets a value that differs from the last one written, that value is copied into the write slot. ' +
+        'Duplicates are simply skipped — nothing is shifted, so the whole job is one O(n) pass over the array.',
+    recapTitle: 'Concept recap — why one pass on a sorted array?'
 };
 
 /* -------- module: viz/problems/interview/07-subarraysumk.js -------- */
@@ -16551,6 +17080,40 @@ VIZ_CONFIG['subarraysumk'] = {
     simulate: vizIvSubarraySumKFrames
 };
 
+/* ---------- Focus Mode config ---------- */
+
+FOCUS_CONFIG['subarraysumk'] = {
+    title: 'Subarray Sum Equals K — Focus Mode',
+    viz: 'subarraysumk',
+    codeGroup: 'subarraysumk',
+    tagline: 'One sum, many ears to compare.',
+    lead: 'Check every window, or use prefix sums to close matching windows in one pass.',
+    optLabel: 'Prefix-sum counter',
+    beats: [
+        {
+            narr: 'Brute force tries every starting point and grows each window — for the sample [1,1,1] with k=2 there are 6 windows to check.',
+            brute: 1,
+            opt: 1
+        },
+        {
+            narr: 'Each window adds up on its own, so the work is O(n\u00b2) in the worst case — too slow for long arrays.',
+            brute: 6,
+            opt: 2
+        },
+        {
+            narr: 'Track the running prefix sum and count how many times each prefix value was seen. If prefix - k was seen before, every such earlier prefix closes a valid subarray. O(n) with one map.',
+            brute: 6,
+            opt: 3
+        }
+    ],
+    recap:
+        'A subarray from i+1 to j has sum k exactly when prefix[j] - prefix[i] = k, i.e. prefix[i] = prefix[j] - k. ' +
+        'So walk left to right, remember how often each prefix sum has occurred in a counter map, and at each position j ' +
+        'add the count of the value prefix[j] - k — every one of those earlier prefixes is the start of a valid subarray. ' +
+        'One O(n) pass with a lookup per step replaces the O(n\u00b2) window search.',
+    recapTitle: 'Concept recap — how do prefix sums count subarrays?'
+};
+
 /* -------- module: viz/problems/interview/08-longestsubstr.js -------- */
 
 /* ============================================================
@@ -16624,6 +17187,39 @@ VIZ_CONFIG['longestsubstr'] = {
     ],
     stepMs: 1150,
     simulate: vizIvLongestSubstrFrames
+};
+
+/* ---------- Focus Mode config ---------- */
+
+FOCUS_CONFIG['longestsubstr'] = {
+    title: 'Longest Substring Without Repeating Characters — Focus Mode',
+    viz: 'longestsubstr',
+    codeGroup: 'longestsubstr',
+    tagline: 'One window, always unique.',
+    lead: 'Every substring is far too many — keep a shrinking window and never re-scan it.',
+    optLabel: 'Sliding window',
+    beats: [
+        {
+            narr: 'Brute force builds every substring and checks each for repeats. For a string of length n that is roughly n\u00b2/2 substrings.',
+            brute: 1,
+            opt: 1
+        },
+        {
+            narr: 'Checking each candidate substring for duplicates on its own adds yet another factor: O(n\u00b2) to O(n\u00b3) work in total.',
+            brute: 21,
+            opt: 4
+        },
+        {
+            narr: 'A sliding window keeps exactly one valid substring. When a char repeats, jump the start past its last appearance — O(n) time, window never re-scanned.',
+            brute: 21,
+            opt: 7
+        }
+    ],
+    recap:
+        'The window is a contiguous run of characters that currently has no repeats. Grow it one character at a time on the right; ' +
+        'if the new character already appears inside the window, slide the left edge past that earlier copy. ' +
+        'Window size never needs a full re-scan, so the whole string is processed in a single O(n) pass while the longest window seen is remembered.',
+    recapTitle: 'Concept recap — what is the window doing?'
 };
 
 /* -------- module: viz/problems/interview/09-maxprodsubarray.js -------- */

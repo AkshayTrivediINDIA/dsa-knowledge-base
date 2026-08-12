@@ -12,6 +12,12 @@
    module.exports below and is shared by the viz modules. */
 var VIZ_CONFIG = {};
 
+/* focus-mode config container — keyed by problem id, populated by the
+   src/js/viz/** modules (one FOCUS_CONFIG entry per focus-enabled problem).
+   Declared here in core so it exists before module.exports and is shared
+   app-wide, mirroring VIZ_CONFIG above. */
+var FOCUS_CONFIG = {};
+
 function safe(fn) {
     try { fn(); } catch (e) { /* never let one subsystem break the app */ }
 }
@@ -27,6 +33,7 @@ function init() {
     safe(renderBookmarks);
     safe(bindDoubt);
     safe(bindHashRouter);
+    safe(focusInjectLinks);
     renderPath(parseHashPath() || parsePath());
 }
 
@@ -53,6 +60,7 @@ if (typeof module !== 'undefined' && module.exports) {
         pageFile: pageFile,
         refUrl: refUrl,
         VIZ_CONFIG: VIZ_CONFIG,
+        FOCUS_CONFIG: FOCUS_CONFIG,
         Visualizer: Visualizer,
         bindDoubt: bindDoubt,
         openDoubt: openDoubt,
@@ -63,6 +71,7 @@ if (typeof module !== 'undefined' && module.exports) {
         doubtSetServerUrl: doubtSetServerUrl,
         doubtClear: clearDoubtHistory,
         immersiveEnter: immersiveEnter,
-        immersiveExit: immersiveExit
+        immersiveExit: immersiveExit,
+        focusInjectLinks: focusInjectLinks
     };
 }

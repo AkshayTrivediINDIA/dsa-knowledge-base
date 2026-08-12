@@ -62,3 +62,36 @@ VIZ_CONFIG['movezeroes'] = {
     stepMs: 1150,
     simulate: vizIvMoveZeroesFrames
 };
+
+/* ---------- Focus Mode config ---------- */
+
+FOCUS_CONFIG['movezeroes'] = {
+    title: 'Move Zeroes — Focus Mode',
+    viz: 'movezeroes',
+    codeGroup: 'movezeroes',
+    tagline: 'Write first, ask questions later.',
+    lead: 'A read pointer scans and a write pointer packs — one pass, no extra array.',
+    optLabel: 'Two pointers',
+    beats: [
+        {
+            narr: 'The simple answer copies every non-zero into a new array, then fills the tail with zeroes — an extra array of the same size.',
+            brute: 1,
+            opt: 1
+        },
+        {
+            narr: 'Copying to a scratch array needs O(n) extra memory and two trips over the data.',
+            brute: 6,
+            opt: 2
+        },
+        {
+            narr: 'Two pointers do it in place: the read pointer scans, the write pointer marks where the next non-zero goes. O(n) time, O(1) space, order preserved.',
+            brute: 6,
+            opt: 4
+        }
+    ],
+    recap:
+        'The trick is a write pointer that only advances when a non-zero is placed. The read pointer sweeps the whole array once; ' +
+        'every time it finds a non-zero, that value is swapped into the write slot. ' +
+        'Zeroes are never actively moved — they are simply overtaken, so they end up untouched at the tail and the relative order of non-zeroes is preserved.',
+    recapTitle: 'Concept recap — why does the write pointer work?'
+};

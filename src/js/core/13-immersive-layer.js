@@ -317,10 +317,12 @@ function immBridgeGroup() {
     var cfg = null;
     if (typeof VIZ_CONFIG !== 'undefined') {
         cfg = VIZ_CONFIG[currentPath] ||
-            (currentPath.indexOf('code/') === 0 ? VIZ_CONFIG[currentPath.slice(5)] : null);
+            (currentPath.indexOf('code/') === 0 ? VIZ_CONFIG[currentPath.slice(5)] : null) ||
+            (currentPath.indexOf('focus/') === 0 ? VIZ_CONFIG[currentPath.slice(6)] : null);
     }
     if (cfg && cfg.family) return cfg.family;
     if (currentPath.indexOf('code/') === 0) return currentPath.slice(5);
+    if (currentPath.indexOf('focus/') === 0) return currentPath.slice(6);
     return '';
 }
 

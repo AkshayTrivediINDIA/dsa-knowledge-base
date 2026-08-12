@@ -70,3 +70,41 @@ VIZ_CONFIG['twosum'] = {
     stepMs: 1150,
     simulate: vizIvTwoSumFrames
 };
+
+/* ---------- Focus Mode config ----------
+   Drives the full-screen teaching environment (see core/14-focus-env).
+   beats[] = the "why this approach" intro, one narration beat per row of
+   the operation-count comparison; brute/hash are cumulative operation
+   counts for the animated bars. recap = plain-English concept panel. */
+
+FOCUS_CONFIG['twosum'] = {
+    title: 'Two Sum — Focus Mode',
+    viz: 'twosum',
+    codeGroup: 'twosum',
+    tagline: 'Why two passes? No — one pass.',
+    lead: 'Compare the naive pair check with the hash-map walk before looking at the code.',
+    bruteLabel: 'Brute force',
+    optLabel: 'Hash map',
+    beats: [
+        {
+            narr: 'The naive way checks every pair. For 4 numbers that is 6 pairs to try — and the count explodes as the array grows.',
+            brute: 1,
+            opt: 1
+        },
+        {
+            narr: 'With brute force each new number multiplies the work: look at every pair again. That is O(n\u00b2) — too slow for big inputs.',
+            brute: 6,
+            opt: 2
+        },
+        {
+            narr: 'A hashmap remembers what we have already seen. Each number needs just one look-up, so one pass does it: O(n) time.',
+            brute: 6,
+            opt: 4
+        }
+    ],
+    recap:
+        'A hashmap is like a labelled box room. When you see a number, you write its value on a box and drop the position inside. ' +
+        'Later, to check "have I seen the partner of this number?", you open one box directly instead of searching every box. ' +
+        'A hashmap turns "did I already see this?" into a single, instant answer — that is what turns O(n\u00b2) pair-checking into one O(n) walk.',
+    recapTitle: 'Concept recap — what is a hash map?'
+};

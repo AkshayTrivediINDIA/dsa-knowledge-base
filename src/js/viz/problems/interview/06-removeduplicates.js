@@ -65,3 +65,36 @@ VIZ_CONFIG['removeduplicates'] = {
     stepMs: 1150,
     simulate: vizIvRemoveDupFrames
 };
+
+/* ---------- Focus Mode config ---------- */
+
+FOCUS_CONFIG['removeduplicates'] = {
+    title: 'Remove Duplicates from Sorted Array — Focus Mode',
+    viz: 'removeduplicates',
+    codeGroup: 'removeduplicates',
+    tagline: 'The array is sorted — use it.',
+    lead: 'A read pointer scans while a write pointer keeps only the first of each run.',
+    optLabel: 'Write pointer',
+    beats: [
+        {
+            narr: 'Brute force would shift the whole tail left after each duplicate found — O(n) copying per duplicate, O(n\u00b2) worst case.',
+            brute: 1,
+            opt: 1
+        },
+        {
+            narr: 'A fresh copy that skips duplicates needs an extra array and a second trip.',
+            brute: 6,
+            opt: 2
+        },
+        {
+            narr: 'One scan does it: because the input is sorted, each new distinct value simply overwrites the next write slot. O(n) time, O(1) space.',
+            brute: 6,
+            opt: 4
+        }
+    ],
+    recap:
+        'Since the array is already sorted, equal values always sit side by side. The read pointer walks forward; ' +
+        'whenever it meets a value that differs from the last one written, that value is copied into the write slot. ' +
+        'Duplicates are simply skipped — nothing is shifted, so the whole job is one O(n) pass over the array.',
+    recapTitle: 'Concept recap — why one pass on a sorted array?'
+};

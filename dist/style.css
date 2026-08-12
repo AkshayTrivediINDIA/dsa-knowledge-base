@@ -3068,3 +3068,300 @@ body.imm-focus #article .viz {
         page-break-inside: avoid;
     }
 }
+
+/* ============================================================
+   Focus Mode — full-screen teaching environment (core/14-focus-env)
+   Mobile-first single column; 2-column grid from 720px. Everything
+   is tap-first (>=44px hit areas), fonts use clamp(), and only
+   transform/opacity animate. Namespaced under .focus-env so it can
+   never clash with the .viz widget styles above.
+   ============================================================ */
+
+/* hide the normal site chrome inside focus mode */
+body.focus-mode .app { display: block; }
+body.focus-mode .header,
+body.focus-mode .sidebar,
+body.focus-mode .content-header,
+body.focus-mode .article-footer,
+body.focus-mode .doubt-fab,
+body.focus-mode .scroll-progress {
+    display: none !important;
+}
+
+body.focus-mode .content {
+    max-width: none;
+    width: 100%;
+    padding: 14px 14px 48px;
+}
+
+body.focus-mode #article {
+    animation: none;
+}
+
+/* ---------- container ---------- */
+
+.focus-env {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 clamp(0px, 2vw, 16px);
+}
+
+@media (min-width: 720px) {
+    .focus-env {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    .focus-intro-block { grid-column: 1 / -1; }
+    .focus-stage-block { grid-column: 1; }
+    .focus-recap-block { grid-column: 1; }
+    .focus-code-block { grid-column: 2; grid-row: 2 / span 3; align-self: start; }
+}
+
+/* ---------- header bar ---------- */
+
+.focus-env-head {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.focus-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 12px;
+    color: var(--accent-primary);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.focus-back:active { background: var(--bg-tertiary); }
+
+.focus-env-title {
+    font-size: clamp(14px, 3vw, 16px);
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-align: right;
+}
+
+/* ---------- blocks ---------- */
+
+.focus-block {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: clamp(12px, 3vw, 20px);
+    box-shadow: var(--shadow-sm);
+    min-width: 0;
+}
+
+.focus-h1 {
+    font-size: clamp(20px, 5.5vw, 26px);
+    margin: 0 0 6px;
+    line-height: 1.25;
+}
+
+.focus-lead {
+    margin: 0 0 12px;
+    color: var(--text-secondary);
+    font-size: clamp(14px, 3.4vw, 16px);
+    line-height: 1.6;
+}
+
+.focus-h2 {
+    font-size: clamp(15px, 3.6vw, 17px);
+    margin: 0 0 10px;
+}
+
+/* ---------- narration + comparison widget ---------- */
+
+.focus-narr {
+    font-size: clamp(14px, 3.4vw, 16px);
+    line-height: 1.65;
+    color: var(--text-primary);
+    margin: 0 0 12px;
+    min-height: clamp(64px, 8.5vh, 90px);
+}
+
+.focus-compare {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.focus-compare-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.focus-compare-label {
+    flex-shrink: 0;
+    width: clamp(70px, 24vw, 96px);
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.focus-compare-track {
+    position: relative;
+    flex: 1;
+    height: 26px;
+    border-radius: var(--radius-md);
+    background: var(--bg-tertiary);
+    overflow: hidden;
+    transform: translateZ(0);
+}
+
+.focus-compare-fill {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100%;
+    border-radius: var(--radius-md);
+    transform-origin: bottom center;
+    transform: scaleY(0);
+    will-change: transform, opacity;
+}
+
+.focus-compare-fill.focus-brute { background: linear-gradient(to right, var(--accent-danger), var(--accent-orange)); opacity: 0.85; }
+.focus-compare-fill.focus-hash  { background: linear-gradient(to right, var(--accent-success), var(--accent-primary)); }
+
+.focus-compare-count {
+    flex-shrink: 0;
+    min-width: 34px;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.focus-compare-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.focus-compare-step {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text-tertiary);
+}
+
+/* ---------- buttons (tap-first, >=44px) ---------- */
+
+.focus-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 14px;
+    gap: 6px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.focus-btn:active { background: var(--bg-tertiary); transform: scale(0.96); }
+.focus-btn:disabled { opacity: 0.4; cursor: default; }
+
+.focus-btn-start {
+    margin-top: 12px;
+    width: 100%;
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: var(--text-inverse);
+    font-size: 15px;
+    min-height: 48px;
+}
+
+.focus-btn-start:active { background: var(--accent-secondary); }
+
+/* ---------- visualizer stage ---------- */
+
+.focus-stage-block .viz {
+    margin: 0;
+    box-shadow: none;
+}
+
+.focus-stage-block .viz-stage {
+    height: clamp(160px, 34vh, 240px);
+}
+
+/* ---------- concept recap / collapsibles ---------- */
+
+.focus-recap summary,
+.focus-code summary {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: clamp(14px, 3.4vw, 15px);
+    font-weight: 600;
+    color: var(--text-primary);
+    list-style: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.focus-recap summary::-webkit-details-marker,
+.focus-code summary::-webkit-details-marker { display: none; }
+
+.focus-recap summary::before,
+.focus-code summary::before {
+    content: '\25B8';
+    margin-right: 10px;
+    transition: transform var(--transition-fast);
+    color: var(--accent-primary);
+}
+
+.focus-recap[open] summary::before,
+.focus-code[open] summary::before { transform: rotate(90deg); }
+
+.focus-recap p {
+    margin: 0;
+    padding: 4px 12px 14px;
+    font-size: clamp(14px, 3.4vw, 16px);
+    line-height: 1.65;
+    color: var(--text-secondary);
+}
+
+.focus-code-body {
+    padding: 0 4px 10px;
+}
+
+.focus-code-body .code-explain { margin: 8px 0; }
+
+.focus-code-body .lang-tabs { padding: 8px 8px 0; }
+
+@media (prefers-reduced-motion: reduce) {
+    .focus-env *,
+    .focus-env *::before {
+        transition: none !important;
+        animation: none !important;
+    }
+    .focus-btn:active,
+    .focus-back:active { transform: none; }
+}

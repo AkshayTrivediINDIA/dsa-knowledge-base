@@ -28,8 +28,9 @@
 - `validate.js` — 83 pages, ALL CHECKS PASSED.
 - `test_app.js` (83 pages), `test_dom.js`, `test_mpa.js` (98 pages boot), `test_standalone.js` (content://), `test_android.js` (hostile file://).
 - **Viz suites**: `test_viz.js` (two-pointers DOM), `test_viz_topics.js` (14 topic pages mount + step), `test_viz_problems.js` (35 problem code pages mount + step to last frame), `test_viz_traces.js` (14 topic + 35 problem simulations' final results asserted), `test_standalone_viz.js` (standalone mounts a viz via hash nav).
+- **Focus Mode suite (NEW)**: `test_focus.js` — 8 focus pages render (compare widget labels + tagline + recap + code group + back link), code pages carry the injected focus link, standalone routes `#/focus/twosum`.
 - **Doubt suite (NEW)**: `test_doubt.js` — panel mount/open/close, send→payload shape (system context + question), typing indicator, AI markdown render, error path, `file://` offline path, settings URL save/persist, clear chat, `doubtRender`/`doubtAskUrl` units (34 checks).
-- **Run command**: `node build.js && node validate.js && node /tmp/opencode/test_app.js && node /tmp/opencode/test_viz_traces.js && node /tmp/opencode/test_viz_topics.js && node /tmp/opencode/test_viz_problems.js && node /tmp/opencode/test_viz.js && node /tmp/opencode/test_dom.js && node /tmp/opencode/test_doubt.js && node /tmp/opencode/test_mpa.js && node /tmp/opencode/test_standalone.js && node /tmp/opencode/test_android.js && node /tmp/opencode/test_standalone_viz.js` (test_mpa ~2.5 min, test_viz_problems ~2 min, test_dom/standalone/android ~1 min each — run one at a time).
+- **Run command**: `node build.js && node validate.js && node /tmp/opencode/test_app.js && node /tmp/opencode/test_viz_traces.js && node /tmp/opencode/test_viz_topics.js && node /tmp/opencode/test_viz_problems.js && node /tmp/opencode/test_viz.js && node /tmp/opencode/test_dom.js && node /tmp/opencode/test_doubt.js && node /tmp/opencode/test_focus.js && node /tmp/opencode/test_immersive.js && node /tmp/opencode/test_mpa.js && node /tmp/opencode/test_standalone.js && node /tmp/opencode/test_android.js && node /tmp/opencode/test_standalone_viz.js` (test_mpa ~2.5 min, test_viz_problems ~2 min, test_dom/standalone/android ~1 min each — run one at a time).
 
 ### Serving over HTTP (with the AI proxy)
 ```
@@ -155,6 +156,45 @@ Each registers `VIZ_CONFIG['<group>']` with the **bare group name** as the key, 
 
 ### Next
 - **Stage C (AI "Ask Doubt" panel)**, then **Phase 5 (ship)**. See "Next stages in order" above.
+
+---
+
+## Phase 4, Stage D — Focus Mode (full-screen teaching environment) ✅ (2026-08-12)
+
+### What it is
+A distraction-free, full-screen teaching page per problem. Reuses the existing `Visualizer` + `VIZ_CONFIG` simulate() pattern and the `.code-explain[data-group]` blocks (pulled from the generated code page, never duplicated by hand). Every problem that registers a `FOCUS_CONFIG['<id>']` (in its `src/js/viz/problems/**` file) automatically gets a `focus/<id>` page.
+
+### Page anatomy (`src/js/core/14-focus-env.js`)
+1. **Back link + title header** (back → `code/<group>` page)
+2. **Intro block** — config-driven tagline (`cfg.tagline`), lead, and a **"why this approach" comparison widget**: two operation-count bars (baseline `brute` vs intended `opt`) with per-beat narration, prev/next controls, cumulative counts in `beats[]`
+3. **Stage** — a normal `Visualizer` mounted on `.focus-stage`, paused by default; the "Start simulation" button scrolls it into view and plays (reduced motion → jump to last frame)
+4. **Concept recap** — `<details>` panel, `cfg.recap` + `cfg.recapTitle`
+5. **Synced code panel** — the full 5-language `~~~explain` group from `code/<group>` (lang tabs + immersive Cockpit Bridge beam work unchanged)
+
+### Config schema (`FOCUS_CONFIG['<id>']`)
+`title`, `viz` (VIZ_CONFIG key), `codeGroup`, `tagline`, `lead`, `bruteLabel`, `optLabel`, `beats[]` (each `{narr, brute, opt}`: narration + cumulative op counts), `recap`, `recapTitle`. Generic `brute`/`opt` keys (not hash-specific) so the same component narrates any problem.
+
+### Problems covered (8, all interview)
+twosum (Hash map), containsduplicate (Hashset), majorityelement (Boyer–Moore votes), movezeroes (Two pointers), removeduplicates (Write pointer), buysellstock (Min-so-far), subarraysumk (Prefix-sum counter), longestsubstr (Sliding window).
+
+### Wiring
+- `10-init.js`: `FOCUS_CONFIG = {}` container + `focusInjectLinks` in `init()`; exported.
+- `07-router.js`: `focus/` prefix + `hasFocusConfig` → `renderFocus`; `focusExit` on every render.
+- `build.js`: generates `focus/<id>.html` pages + focus-aware page titles; calls `app.focusInjectLinks()` at build so the static code pages already carry the "Focus mode" callout.
+- `viz/98-focus-links.js`: injects `> **Focus mode:** … [Open Focus Mode](focus/<id>)` into every code page whose problem registers beats (idempotent; skipped if already present).
+- `13-immersive-layer.js`: Cockpit Bridge resolves `focus/` paths → `VIZ_CONFIG[slice(6)]` so the code beam works on focus pages.
+- `style.css`: `.focus-env` block (mobile-first single column → 2-col from 720px; `body.focus-mode` hides site chrome; tap-first ≥44px; only transform/opacity animate).
+
+### Verification (all green)
+- Build: `dist/script.js` ~1.0 MB, `index.standalone.html` ~1.1 MB, **108 HTML pages** (8 focus pages).
+- `validate.js` → ALL CHECKS PASSED.
+- **`test_focus.js`** (new): 8 focus pages render compare widget (labels + tagline) + stage viz + recap + code group + back href, no console errors; all 8 code pages carry the focus link; standalone routes `#/focus/twosum`. 0 FAIL.
+- Regression: `test_viz`, `test_viz_traces`, `test_standalone_viz`, `test_immersive`, `test_doubt` — all pass.
+- No commits made; working tree carries the feature uncommitted.
+
+### Next
+- Add FOCUS_CONFIG to more problems (remaining interview: maxprodsubarray, mergeintervals, findanagrams, splitarray, firstmissing, trappingwater, slidingwindowmax, containerwater; then LeetCode + snippets).
+- Consider a `noBeats` variant (recap/code only) for problems without a clean brute-vs-opt story.
 
 ---
 

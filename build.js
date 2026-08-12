@@ -88,7 +88,12 @@ fs.copyFileSync(path.join(SRC, 'style.css'), path.join(DIST, 'style.css'));
 
 /* ---------- 3. load the content DB from the built bundle ---------- */
 const app = require(path.join(DIST, 'script.js'));
-const { DB, DS_CARDS, pageFile } = app;
+const { DB, DS_CARDS, pageFile, FOCUS_CONFIG } = app;
+
+/* inject Focus Mode links into every code page whose problem has a
+   focused config (runs at init() in the browser too — this just makes
+   the statically-generated pages already contain the links) */
+if (typeof app.focusInjectLinks === 'function') app.focusInjectLinks();
 
 /* ---------- 4. sidebar generator ---------- */
 function esc(s) {
@@ -212,6 +217,10 @@ function pageTitle(currentPath) {
         const c = DS_CARDS.find((x) => x.path === currentPath);
         return (c ? c.title : 'Coming Soon') + ' — Coming Soon — DSA Knowledge Base';
     }
+    if (currentPath.indexOf('focus/') === 0) {
+        const f = FOCUS_CONFIG[currentPath.replace('focus/', '')];
+        return (f ? f.title : 'Focus Mode') + ' — DSA Knowledge Base';
+    }
     const d = DB[currentPath];
     return (d ? d.title : currentPath) + ' — DSA Knowledge Base';
 }
@@ -227,6 +236,9 @@ Object.keys(DB).forEach((p) => {
 });
 DS_CARDS.forEach((c) => {
     if (c.path.indexOf('coming-soon/') === 0) pages.push({ file: pageFile(c.path), path: c.path });
+});
+Object.keys(FOCUS_CONFIG || {}).forEach((id) => {
+    pages.push({ file: pageFile('focus/' + id), path: 'focus/' + id });
 });
 
 const seen = {};

@@ -50,8 +50,14 @@ function bindHashRouter() {
 function renderPath(path) {
     if (path === 'home') renderHome();
     else if (path.indexOf('coming-soon/') === 0) renderComingSoon(path.replace('coming-soon/', ''));
+    else if (path.indexOf('focus/') === 0 && hasFocusConfig(path)) renderFocus(path);
     else if (DB[path]) renderPage(path);
     else renderHome();
+}
+
+function hasFocusConfig(path) {
+    return typeof FOCUS_CONFIG !== 'undefined' &&
+        !!FOCUS_CONFIG[String(path).replace(/^focus\//, '')];
 }
 
 function setProgress(pct) {
@@ -65,6 +71,7 @@ function renderHome() {
     currentPath = 'home';
     document.title = 'DSA Knowledge Base — Dashboard';
     safe(immersiveExit);
+    safe(focusExit);
     safe(vizTeardownAll);
 
     var activeCount = 0;
@@ -157,6 +164,7 @@ function renderComingSoon(dsId) {
     currentPath = 'coming-soon/' + dsId;
     document.title = card.title + ' — Coming Soon — DSA Knowledge Base';
     safe(immersiveExit);
+    safe(focusExit);
     safe(vizTeardownAll);
 
     var topicsList = '';
@@ -206,6 +214,7 @@ function renderPage(path) {
     currentPath = path;
     document.title = page.title + ' — DSA Knowledge Base';
     safe(immersiveExit);
+    safe(focusExit);
     safe(vizTeardownAll);
     $('#article').innerHTML = renderMarkdown(page.content);
     safe(initLangTabsAll);

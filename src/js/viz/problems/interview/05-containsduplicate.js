@@ -60,3 +60,36 @@ VIZ_CONFIG['containsduplicate'] = {
     stepMs: 1150,
     simulate: vizIvContainsDupFrames
 };
+
+/* ---------- Focus Mode config ---------- */
+
+FOCUS_CONFIG['containsduplicate'] = {
+    title: 'Contains Duplicate — Focus Mode',
+    viz: 'containsduplicate',
+    codeGroup: 'containsduplicate',
+    tagline: 'Remember what you have already seen.',
+    lead: 'One scan with a hashset beats re-checking every pair.',
+    optLabel: 'Hashset',
+    beats: [
+        {
+            narr: 'Brute force compares every pair of values. For 4 numbers that is 6 pair comparisons — and it explodes as the array grows.',
+            brute: 1,
+            opt: 1
+        },
+        {
+            narr: 'Each new number re-checked against all earlier ones means O(n\u00b2) comparisons — 10 numbers \u2192 45 pairs. Too slow.',
+            brute: 6,
+            opt: 2
+        },
+        {
+            narr: 'A hashset remembers every value seen so far. One look-up per number settles the whole array: O(n) time.',
+            brute: 6,
+            opt: 4
+        }
+    ],
+    recap:
+        'A hashset is a collection that answers "have I seen this value before?" in one step, no matter how many values are stored. ' +
+        'Insert the current value, and immediately check whether it was already there — if it was, the array contains a duplicate. ' +
+        'That turns the O(n\u00b2) "compare everything with everything" scan into a single O(n) walk.',
+    recapTitle: 'Concept recap — what is a hashset used for?'
+};

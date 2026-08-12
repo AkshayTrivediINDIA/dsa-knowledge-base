@@ -76,3 +76,36 @@ VIZ_CONFIG['buysellstock'] = {
     stepMs: 1150,
     simulate: vizIvBuySellFrames
 };
+
+/* ---------- Focus Mode config ---------- */
+
+FOCUS_CONFIG['buysellstock'] = {
+    title: 'Best Time to Buy & Sell Stock — Focus Mode',
+    viz: 'buysellstock',
+    codeGroup: 'buysellstock',
+    tagline: 'Buy low, remember the low.',
+    lead: 'Compare every buy/sell pair, then realize just tracking the cheapest price so far is enough.',
+    optLabel: 'Min-so-far scan',
+    beats: [
+        {
+            narr: 'Brute force checks every buy/sell pair — for 6 days that is 15 pairs to evaluate.',
+            brute: 1,
+            opt: 1
+        },
+        {
+            narr: 'Each new day re-checks every earlier buy price: O(n\u00b2) pair evaluations.',
+            brute: 15,
+            opt: 6
+        },
+        {
+            narr: 'The optimum must buy at the cheapest price seen before the sell day. One pass tracking the minimum so far gives the best profit in O(n).',
+            brute: 15,
+            opt: 2
+        }
+    ],
+    recap:
+        'The best sell day sells at the highest profit, and that profit is always price[day] minus the cheapest price that came before. ' +
+        'So keep a running minimum as you walk forward and compute the profit at every day, remembering the largest. ' +
+        'One O(n) pass replaces O(n\u00b2) pair checking — you never need to look at a buy day twice.',
+    recapTitle: 'Concept recap — why is one low enough?'
+};
