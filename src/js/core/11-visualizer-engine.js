@@ -12,6 +12,8 @@
 
 var ACTIVE_VIS = [];
 var VIZ_REDUCED = (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+var AUTON_KEY = 'dsa_auto_narrate';
+var VIZ_INSTANCE_SEQ = 0;
 
 function VIZ_GSAP() {
     return (typeof window !== 'undefined' && window.gsap) ? window.gsap : null;
@@ -63,6 +65,7 @@ function vizFromTo(el, from, to, dur, ease) {
 function Visualizer(mount, cfg) {
     this.mount = mount;
     this.cfg = cfg || {};
+    this._id = 'viz' + (++VIZ_INSTANCE_SEQ);
     this.frames = [];
     this.player = null;
     this.index = -1;
@@ -127,6 +130,9 @@ Visualizer.prototype.build = function () {
                 '<option value="2">2x</option>' +
                 '<option value="3">3x</option>' +
             '</select>' +
+            '<label class="viz-auton" data-vz-auton title="Auto-narrate: let beats advance on their own">' +
+                '<input type="checkbox" data-vz-auton-input>Auto-narrate' +
+            '</label>' +
         '</div>' +
         inputHtml;
 
@@ -165,6 +171,31 @@ Visualizer.prototype.wireControls = function () {
         speed.addEventListener('change', function () {
             if (self.player) self.player.setSpeed(parseFloat(speed.value));
         });
+    }
+
+    /* Auto-narrate toggle: ON -> the player advances frames on its own
+       with weighted beat pacing; OFF -> guided mode where the learner
+       steps with Next/Prev. Preference persists so a returning visitor
+       keeps their choice. */
+    var auton = this.mount.querySelector('[data-vz-auton]');
+    var autonInput = this.mount.querySelector('[data-vz-auton-input]');
+    if (auton && autonInput) {
+        var autonSaved = storage.get(AUTON_KEY);
+        var autonOn = autonSaved === '1';
+        autonInput.checked = autonOn;
+        auton.classList.toggle('on', autonOn);
+        autonInput.addEventListener('change', function () {
+            var on = autonInput.checked;
+            storage.set(AUTON_KEY, on ? '1' : '0');
+            auton.classList.toggle('on', on);
+            if (on) self.play();
+            else self.pause();
+        });
+        if (autonOn && !this.reduced) {
+            setTimeout(function () { if (!self._disposed && !self.player.playing) self.play(); }, 350);
+        } else {
+            this.pause();
+        }
     }
 
     var apply = this.mount.querySelector('[data-vz-apply]');
@@ -694,6 +725,13 @@ Visualizer.prototype.updateControls = function () {
     if (scrub) { scrub.max = Math.max(this.frames.length - 1, 0); scrub.value = this.index; }
     if (counter) counter.textContent = (this.index + 1) + ' / ' + this.frames.length;
     if (playBtn) playBtn.textContent = this.player && this.player.playing ? '\u23F8' : '\u25B6';
+    var auton = this.mount.querySelector('[data-vz-auton]');
+    var autonInput = this.mount.querySelector('[data-vz-auton-input]');
+    var playing = this.player && this.player.playing;
+    if (autonInput && autonInput.checked !== !!playing) {
+        autonInput.checked = !!playing;
+        if (auton) auton.classList.toggle('on', !!playing);
+    }
 };
 
 Visualizer.prototype.applyInput = function () {
@@ -733,12 +771,38 @@ function VizPlayer(viz, frames, opts) {
     this.playing = false;
     this.speed = 1;
     this.stepMs = (opts && opts.stepMs) || 1050;
+    this.breatheMs = (opts && opts.breatheMs) || 600;
     this.timer = null;
 }
 
 VizPlayer.prototype.setSpeed = function (s) {
     this.speed = s;
     this.viz.updateControls();
+};
+
+/* Beat-based pacing: every frame can carry its own holdMs (how long the
+   narration / diagram holds before the next step). When a config does not
+   set holdMs explicitly, major frames are auto-weighted longer so a
+   beginner can actually read the important step:
+   - "found" (answer/re-match), "swap", and major log beats (match / new
+     best / done / switch / found) get ~1.9x the base stepMs.
+   - Simple continuation frames stay at the base stepMs.
+   A short "breathe" pause follows every major frame so the eye can rest
+   before the next beat moves on. Manual Next/Prev/scrub bypass this
+   entirely (they call goto directly) — pacing only affects play(). */
+VizPlayer.prototype.majorFrame = function (f) {
+    if (!f) return false;
+    if (f.found || f.swap) return true;
+    var lg = f.log;
+    return lg === 'match' || lg === 'new best' || lg === 'done' ||
+        lg === 'switch' || lg === 'found';
+};
+
+VizPlayer.prototype.frameMs = function (f) {
+    var base = this.stepMs;
+    if (f && typeof f.holdMs === 'number') base = f.holdMs;
+    else if (this.majorFrame(f)) base = Math.round(this.stepMs * 1.9);
+    return base / this.speed;
 };
 
 VizPlayer.prototype.play = function () {
@@ -750,9 +814,13 @@ VizPlayer.prototype.play = function () {
     this.viz.updateControls();
     var tick = function () {
         if (!self.playing) return;
+        var prevFrame = self.frames[self.index];
         self.goto(self.index + 1);
         if (self.index >= self.frames.length - 1) { self.pause(); return; }
-        self.timer = setTimeout(tick, self.stepMs / self.speed);
+        var nextFrame = self.frames[self.index + 1];
+        var delay = self.frameMs(nextFrame);
+        if (self.majorFrame(prevFrame)) delay += self.breatheMs / self.speed;
+        self.timer = setTimeout(tick, delay);
     };
     this.timer = setTimeout(tick, 60);
 };
@@ -803,7 +871,10 @@ function vizInitForPage() {
         viz._scrollObs = obs;
     }
 
-    if (cfg.autoPlay !== false && !viz.reduced) {
+    /* Guided by default: the Auto-narrate toggle (wireControls) owns
+       playback. It starts paused unless the visitor has opted into
+       auto-narrate, so first-time learners step through with Next. */
+    if (cfg.autoPlay) {
         setTimeout(function () { if (!viz._disposed) viz.play(); }, 350);
     }
 }

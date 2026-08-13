@@ -146,7 +146,29 @@ function immObserve() {
    fields, so no viz config or engine file needs to change.
    ============================================================ */
 
-var IMM_BRIDGE = { beam: null, lineIndex: -1 };
+var IMM_BRIDGE = { beam: null, lineIndex: -1, full: false };
+var IMM_GLOW_DELAY = 980;      /* array animates first, then the code beam */
+var IMM_GLOW_TIMERS = {};      /* viz -> timeout id (cleared per step / on exit) */
+
+function immGlowScheduled(viz, frame) {
+    if (immReduced() || !frame) return;
+    if (IMM_GLOW_TIMERS[viz._id] !== undefined) {
+        clearTimeout(IMM_GLOW_TIMERS[viz._id]);
+        delete IMM_GLOW_TIMERS[viz._id];
+    }
+    IMM_GLOW_TIMERS[viz._id] = setTimeout(function () {
+        delete IMM_GLOW_TIMERS[viz._id];
+        immCodeGlow(viz, frame);
+    }, IMM_GLOW_DELAY);
+}
+
+function immGlowImmediate(viz, frame) {
+    if (IMM_GLOW_TIMERS[viz._id] !== undefined) {
+        clearTimeout(IMM_GLOW_TIMERS[viz._id]);
+        delete IMM_GLOW_TIMERS[viz._id];
+    }
+    immCodeGlow(viz, frame);
+}
 
 (function () {
     if (typeof Visualizer === 'undefined' || !Visualizer.prototype) return;
@@ -162,6 +184,10 @@ var IMM_BRIDGE = { beam: null, lineIndex: -1 };
         if (stepping) {
             var nf = this.frames && this.frames[i];
             immJuice(this, nf, this.frames[prev]);
+            /* Sequential: let the array/state change render and breathe
+               before the code line glows — never both at once. */
+            if (immReduced()) immGlowImmediate(this, nf);
+            else immGlowScheduled(this, nf);
         }
     };
 })();
@@ -180,8 +206,6 @@ function immStepIn(viz, frame, prevFrame) {
             { opacity: 0.25, y: 6 },
             { opacity: 1, y: 0, duration: immDur('normal'), ease: immEas('soft') });
     }
-    /* code "glow travel" beam (Cockpit Bridge, best-effort) */
-    immCodeGlow(viz, frame);
 }
 
 /* ---------- micro-feedback juice ---------- */
@@ -402,6 +426,7 @@ function immCodeGlow(viz, frame) {
         pre.appendChild(beam);
         IMM_BRIDGE.beam = beam;
     }
+    immWrapCodeLines(pre);
 
     var ln = immMatchLine(frame);
     var lh = 20;
@@ -412,19 +437,23 @@ function immCodeGlow(viz, frame) {
 
     if (ln == null) {
         immClearExplain();
+        immClearCodeWindow(pre);
         g.to(beam, { opacity: 0, duration: immDur('fast'), ease: immEas('soft') });
         return;
     }
 
     var y = immCodeY(ln, pre);
+    immEnsureCodeButton();
     if (IMM_BRIDGE.lineIndex === ln) {
         g.set(beam, { opacity: 1, y: y, height: lh });
         immMarkExplain(ln);
+        immApplyCodeWindow(ln, pre);
         return;
     }
     g.to(beam, { opacity: 1, y: y, height: lh, duration: immDur('slow'), ease: immEas('settle') });
     IMM_BRIDGE.lineIndex = ln;
     immMarkExplain(ln);
+    immApplyCodeWindow(ln, pre);
 }
 
 function immCodeY(ln, pre) {
@@ -434,6 +463,128 @@ function immCodeY(ln, pre) {
         if (fl && !isNaN(fl) && fl > 0) lh = fl;
     }
     return (ln - 1) * lh;
+}
+
+/* ============================================================
+   Code mini-window — "camera focus box" for the explain code.
+   Wraps each line of the active <code> in a .code-line span so a
+   CSS filter can blur/dim everything outside the window around the
+   active line (current +/- radius). A "Show full code" toggle
+   restores the whole function. Only transform/opacity/filter CSS —
+   no extra GSAP tweens.
+   ============================================================ */
+
+var IMM_CODE_RADIUS = 1;   /* previous + current + next line */
+
+function immCodeLines(pre) {
+    var code = (pre && pre.querySelector) ? pre.querySelector('code') : null;
+    if (!code) return [];
+    return toArray(code.querySelectorAll('.code-line'));
+}
+
+function immWrapCodeLines(pre) {
+    var code = (pre && pre.querySelector) ? pre.querySelector('code') : null;
+    if (!code || code.querySelector('.code-line')) return;
+    var frag = document.createDocumentFragment();
+    var line = document.createElement('span');
+    line.className = 'code-line';
+    frag.appendChild(line);
+
+    function newLine() {
+        line = document.createElement('span');
+        line.className = 'code-line';
+        frag.appendChild(line);
+        return line;
+    }
+
+    /* Walk the highlighted <code> children; split text on newlines and
+       keep the hl-* highlight spans intact inside each .code-line. */
+    var stack = [code];
+    while (stack.length) {
+        var node = stack.shift();
+        if (node.nodeType === 3) {                       /* text */
+            var parts = String(node.nodeValue).split('\n');
+            for (var p = 0; p < parts.length; p++) {
+                if (parts[p] !== '') line.appendChild(document.createTextNode(parts[p]));
+                if (p < parts.length - 1) newLine();
+            }
+            continue;
+        }
+        if (node.nodeType !== 1) continue;               /* comments etc. */
+        var tag = node.nodeName.toLowerCase();
+        if (tag === 'code') {
+            for (var c = 0; c < node.childNodes.length; c++) stack.push(node.childNodes[c]);
+            continue;
+        }
+        /* highlight span -> re-create inside the current code-line */
+        var el = document.createElement(tag);
+        if (node.getAttribute) {
+            var atts = node.attributes || [];
+            for (var a = 0; a < atts.length; a++) el.setAttribute(atts[a].nodeName, atts[a].nodeValue);
+        }
+        line.appendChild(el);
+        stack.push(el);
+        /* re-queue the *text* children of the highlight span so newlines
+           inside (e.g. multi-line comments) still split lines */
+        var kids = [];
+        for (var k = 0; k < node.childNodes.length; k++) kids.push(node.childNodes[k]);
+        kids.forEach(function (k2) { stack.push(k2); });
+    }
+
+    code.innerHTML = '';
+    code.appendChild(frag);
+    /* tag each line with its 1-based code line number */
+    toArray(code.querySelectorAll('.code-line')).forEach(function (lnEl, i) {
+        lnEl.setAttribute('data-ln', String(i + 1));
+    });
+    if (immReduced()) immFullCode(true);
+}
+
+function immApplyCodeWindow(ln, pre) {
+    if (!pre || immReduced()) return;
+    if (IMM_BRIDGE.full) { immClearCodeWindow(pre); return; }
+    var lines = immCodeLines(pre);
+    if (!lines.length) return;
+    lines.forEach(function (lnEl) {
+        var n = parseInt(lnEl.getAttribute('data-ln'), 10);
+        var near = typeof ln === 'number' && Math.abs(n - ln) <= IMM_CODE_RADIUS;
+        lnEl.classList.toggle('dim', !near);
+    });
+}
+
+function immClearCodeWindow(pre) {
+    if (!pre) return;
+    toArray(pre.querySelectorAll('.code-line.dim')).forEach(function (lnEl) {
+        lnEl.classList.remove('dim');
+    });
+}
+
+function immFullCode(on) {
+    var b = immBridgeBlock();
+    if (!b) return;
+    var btn = document.querySelector('.imm-fullcode-btn');
+    if (on) {
+        b.classList.add('imm-full-code');
+        if (btn) btn.textContent = 'Collapse code';
+    } else {
+        b.classList.remove('imm-full-code');
+        if (btn) btn.textContent = 'Show full code';
+    }
+    if (typeof IMM_BRIDGE !== 'undefined') IMM_BRIDGE.full = !!on;
+}
+
+function immEnsureCodeButton() {
+    var b = immBridgeBlock();
+    if (!b || b.querySelector('.imm-fullcode-btn')) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'imm-fullcode-btn';
+    btn.setAttribute('aria-label', 'Toggle full code view');
+    btn.textContent = IMM_BRIDGE.full ? 'Collapse code' : 'Show full code';
+    btn.addEventListener('click', function () {
+        immFullCode(!IMM_BRIDGE.full);
+    });
+    b.appendChild(btn);
 }
 
 /* ============================================================
@@ -454,6 +605,15 @@ function immersiveExit() {
         if (IMM_BRIDGE.beam && IMM_BRIDGE.beam.parentNode) IMM_BRIDGE.beam.parentNode.removeChild(IMM_BRIDGE.beam);
         IMM_BRIDGE.beam = null;
         IMM_BRIDGE.lineIndex = -1;
+    } catch (e) {}
+    try {
+        Object.keys(IMM_GLOW_TIMERS).forEach(function (k) {
+            clearTimeout(IMM_GLOW_TIMERS[k]);
+            delete IMM_GLOW_TIMERS[k];
+        });
+        immFullCode(false);
+        var btn = document.querySelector('.imm-fullcode-btn');
+        if (btn && btn.parentNode) btn.parentNode.removeChild(btn);
     } catch (e) {}
 }
 

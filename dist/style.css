@@ -707,6 +707,7 @@ body {
 
 /* Explained Code Blocks */
 .code-explain {
+    position: relative;
     margin: 16px 0;
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-md);
@@ -2525,6 +2526,39 @@ body {
     padding: 0 6px;
 }
 
+.viz-auton {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 34px;
+    padding: 0 10px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.viz-auton:hover { border-color: var(--accent-primary); }
+
+.viz-auton input {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--accent-primary);
+    cursor: pointer;
+    margin: 0;
+}
+
+.viz-auton.on {
+    background: var(--viz-soft);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
 .viz-input {
     display: flex;
     flex-wrap: wrap;
@@ -2687,6 +2721,57 @@ body.imm-focus #article .viz {
 .explain-lines li {
     transition: background var(--transition-fast), box-shadow var(--transition-fast);
 }
+
+/* ---- code mini-window: dim lines outside the active focus ---- */
+
+.code-explain pre code {
+    display: block;
+}
+
+.code-explain pre code .code-line {
+    display: block;
+}
+
+.code-explain pre code .code-line.dim {
+    opacity: 0.25;
+    filter: blur(0.5px);
+}
+
+.code-explain pre code .code-line {
+    transition: opacity var(--transition-normal), filter var(--transition-normal);
+}
+
+.code-explain.imm-full-code pre code .code-line,
+.code-explain.imm-full-code pre code .code-line.dim {
+    opacity: 1;
+    filter: none;
+}
+
+.imm-fullcode-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 6;
+    border: 1px solid var(--border-primary);
+    border-radius: 999px;
+    background: var(--bg-elevated);
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1;
+    padding: 5px 10px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.imm-fullcode-btn:hover {
+    opacity: 1;
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+:is(.code-explain):not(.imm-full-code) .imm-fullcode-btn { display: block; }
+.code-explain.imm-full-code .imm-fullcode-btn { position: static; float: right; margin: 8px 8px 0 0; }
 
 .explain-lines li.active {
     background: var(--viz-soft);
