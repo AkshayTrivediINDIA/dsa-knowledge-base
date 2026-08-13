@@ -49,6 +49,7 @@
        GET  /api/config        { configured, model, endpoints, active }  (never leaks keys)
        GET  /api/ask           health check
        POST /api/ask           { messages, temperature? } -> { ok, text, model, backend }
+                                (+ stream:true -> SSE: {ok,delta}.. {ok,done} / {ok,false,error})
        anything else           serves files from STATIC_DIR
    ============================================================ */
 
@@ -245,68 +246,247 @@ function pump(b) {
     );
 }
 
-function callBackend(b, messages, opts) {
+function buildPayload(b, messages, opts) {
+    /* Some anonymous backends (Pollinations) reject `temperature` outright and
+       treat a `system` role as a paid call — fold the system prompt into the
+       first user message and drop the temperature field for them. */
+    let bodyMessages = messages;
+    if (b.mergeSystem && messages[0] && messages[0].role === 'system') {
+        bodyMessages = messages.slice(1);
+        const first = bodyMessages[0];
+        if (first) {
+            bodyMessages = bodyMessages.slice();
+            bodyMessages[0] = Object.assign({}, first, {
+                content: 'Instructions: ' + messages[0].content + '\n\nStudent question: ' + first.content
+            });
+        } else {
+            bodyMessages = messages;   // system-only ask — keep as sent
+        }
+    }
+    const payload = { model: b.model, messages: bodyMessages, max_tokens: 1200 };
+    if (!b.noTemp) payload.temperature = typeof opts.temperature === 'number' ? opts.temperature : 0.4;
+    return payload;
+}
+
+function callBackend(b, messages, opts, onDelta) {
     return enqueue(b, () => new Promise((resolve, reject) => {
         const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
         if (b.token) headers.Authorization = 'Bearer ' + b.token;
-        /* Some anonymous backends (Pollinations) reject `temperature` outright and
-           treat a `system` role as a paid call — fold the system prompt into the
-           first user message and drop the temperature field for them. */
-        let bodyMessages = messages;
-        if (b.mergeSystem && messages[0] && messages[0].role === 'system') {
-            bodyMessages = messages.slice(1);
-            const first = bodyMessages[0];
-            if (first) {
-                bodyMessages = bodyMessages.slice();
-                bodyMessages[0] = Object.assign({}, first, {
-                    content: 'Instructions: ' + messages[0].content + '\n\nStudent question: ' + first.content
-                });
-            } else {
-                bodyMessages = messages;   // system-only ask — keep as sent
-            }
+        const payload = buildPayload(b, messages, opts);
+        if (onDelta) {
+            payload.stream = true;
+            headers.Accept = 'text/event-stream';
         }
-        const payload = { model: b.model, messages: bodyMessages, max_tokens: 1200 };
-        if (!b.noTemp) payload.temperature = typeof opts.temperature === 'number' ? opts.temperature : 0.4;
         const body = JSON.stringify(payload);
 
         const lib = b.url.indexOf('http://') === 0 ? http : https;
         const req = lib.request(b.url, { method: 'POST', headers, timeout: b.timeout || 30000 }, (res) => {
-            let data = '';
-            res.on('data', (c) => { data += c; });
-            res.on('end', () => {
-                if (res.statusCode !== 200) {
+            if (res.statusCode !== 200) {
+                let data = '';
+                res.on('data', (c) => { data += c; });
+                res.on('end', () => {
                     const err = new Error(extractDetail(data));
                     err.status = res.statusCode;
                     reject(err);
-                    return;
-                }
-                try {
-                    const json = JSON.parse(data);
-                    const content = json && json.choices && json.choices[0] && json.choices[0].message &&
-                        json.choices[0].message.content;
-                    if (typeof content !== 'string' || !content.trim()) {
-                        const err = new Error('empty content');
+                });
+                return;
+            }
+            if (!onDelta) {
+                let data = '';
+                res.on('data', (c) => { data += c; });
+                res.on('end', () => {
+                    try {
+                        const json = JSON.parse(data);
+                        const content = json && json.choices && json.choices[0] && json.choices[0].message &&
+                            json.choices[0].message.content;
+                        if (typeof content !== 'string' || !content.trim()) {
+                            const err = new Error('empty content');
+                            err.status = 200;
+                            reject(err);
+                            return;
+                        }
+                        resolve({
+                            text: cleanAnswer(content),
+                            model: (json.model || b.model),
+                            usage: json.usage || null,
+                            backend: b.name
+                        });
+                    } catch (e) {
+                        const err = new Error('non-JSON response');
                         err.status = 200;
                         reject(err);
-                        return;
                     }
-                    resolve({
-                        text: cleanAnswer(content),
-                        model: (json.model || b.model),
-                        usage: json.usage || null,
-                        backend: b.name
-                    });
-                } catch (e) {
-                    const err = new Error('non-JSON response');
-                    err.status = 200;
-                    reject(err);
+                });
+                return;
+            }
+            /* streaming: the backend may ignore `stream:true` and answer with
+               plain JSON (no event-stream content type) — treat the whole answer
+               as one delta. Otherwise read the SSE `data:` lines and forward each
+               content delta as it arrives. */
+            const ct = String((res.headers['content-type'] || '')).toLowerCase();
+            if (ct.indexOf('text/event-stream') === -1) {
+                let data = '';
+                res.on('data', (c) => { data += c; });
+                res.on('end', () => {
+                    try {
+                        const json = JSON.parse(data);
+                        const content = json && json.choices && json.choices[0] && json.choices[0].message &&
+                            json.choices[0].message.content;
+                        if (typeof content !== 'string' || !content.trim()) {
+                            const err = new Error('empty content');
+                            err.status = 200;
+                            reject(err);
+                            return;
+                        }
+                        const clean = cleanAnswer(content);
+                        onDelta(clean);
+                        resolve({ text: clean, model: (json.model || b.model), usage: json.usage || null, backend: b.name });
+                    } catch (e) {
+                        const err = new Error('non-JSON response');
+                        err.status = 200;
+                        reject(err);
+                    }
+                });
+                return;
+            }
+            let buf = '';
+            let full = '';
+            let finished = false;
+            const parseLine = (line) => {
+                const t = String(line).replace(/\r$/, '');
+                if (t.indexOf('data:') !== 0) return;
+                const data = t.slice(5).trim();
+                if (!data || data === '[DONE]') return;
+                try {
+                    const j = JSON.parse(data);
+                    const ch = j.choices && j.choices[0];
+                    const delta = ch && ch.delta && typeof ch.delta.content === 'string' ? ch.delta.content : '';
+                    if (delta) {
+                        full += delta;
+                        onDelta(delta);
+                    }
+                } catch (e) { /* ignore malformed keep-alive frames */ }
+            };
+            res.on('data', (c) => {
+                buf += c.toString('utf8');
+                let idx;
+                while ((idx = buf.indexOf('\n')) !== -1) {
+                    const line = buf.slice(0, idx);
+                    buf = buf.slice(idx + 1);
+                    parseLine(line);
                 }
             });
+            res.on('end', () => {
+                if (String(buf).trim()) parseLine(buf);
+                if (finished) return;
+                finished = true;
+                if (!full.trim()) {
+                    const err = new Error('empty content');
+                    err.status = 200;
+                    reject(err);
+                    return;
+                }
+                resolve({
+                    text: cleanAnswer(full),
+                    model: b.model,
+                    usage: null,
+                    backend: b.name
+                });
+            });
         });
+        if (opts.abortRef) opts.abortRef.fn = () => { try { req.destroy(); } catch (e) {} };
         req.on('error', reject);
         req.on('timeout', () => { req.destroy(new Error('timeout')); });
         req.end(body);
     }));
+}
+
+/* like forward(), but for SSE streaming. Backends are tried in order until one
+   emits its first delta; once the first token arrives that backend is committed
+   (a mid-stream failure cannot be failed over cleanly). */
+function forwardStream(messages, opts, handlers) {
+    const now = Date.now();
+    const deadlineAt = now + (opts.deadlineMs || 75000);
+    const order = [];
+    for (let i = 0; i < backends.length; i++) {
+        const idx = (lastGood + i) % backends.length;
+        const b = backends[idx];
+        if (downUntil[b.name] && now < downUntil[b.name]) continue;
+        order.push(idx);
+    }
+    if (!order.length) {
+        for (let i = 0; i < backends.length; i++) order.push((lastGood + i) % backends.length);
+    }
+
+    let attempt = 0;
+    let retried = false;
+    let settled = false;
+    const errors = [];
+
+    function detailFor(lastErr) {
+        if (!lastErr) return 'no backends available';
+        return lastErr.status !== 'net'
+            ? lastErr.name + ' [' + lastErr.status + ']'
+            : lastErr.name + ' [' + lastErr.detail + ']';
+    }
+
+    function done(err, okRes) {
+        if (settled) return;
+        settled = true;
+        if (err) handlers.onError(err);
+        else handlers.onDone(okRes);
+    }
+
+    function next() {
+        if (settled) return;
+        if (Date.now() > deadlineAt) {
+            const e = new Error('AI backends took too long (over the deadline). Try again in a moment.');
+            e.deadline = true;
+            e.attempted = errors.map((x) => x.name + (x.status ? '(' + x.status + ')' : ''));
+            done(e);
+            return;
+        }
+        if (attempt >= order.length) {
+            const e = new Error('All AI backends failed — last: ' + detailFor(errors[errors.length - 1]));
+            e.deadline = false;
+            e.attempted = errors.map((x) => x.name + (x.status ? '(' + x.status + ')' : ''));
+            done(e);
+            return;
+        }
+        const bi = order[attempt];
+        const b = backends[bi];
+        let gotDelta = false;
+
+        callBackend(b, messages, opts, (text) => {
+            if (!gotDelta) {
+                gotDelta = true;
+                lastGood = bi;
+                downUntil[b.name] = 0;
+            }
+            handlers.onDelta(text);
+        }).then((okRes) => {
+            lastGood = bi;
+            downUntil[b.name] = 0;
+            done(null, okRes);
+        }).catch((err) => {
+            if (gotDelta) {
+                done(err);     // committed mid-stream — surface the error as-is
+                return;
+            }
+            if (!retried && isTransient(err.status) && Date.now() <= deadlineAt) {
+                retried = true;
+                setTimeout(next, 1200);   // transient -> retry the same backend once
+                return;
+            }
+            attempt++;
+            retried = false;
+            errors.push({ name: b.name, status: err.status || 'net', detail: err.message });
+            downUntil[b.name] = Date.now() + cooldownFor(err);
+            next();
+        });
+    }
+
+    next();
 }
 
 function forward(messages, opts, cb) {
@@ -496,6 +676,61 @@ const server = http.createServer((req, res) => {
                     return;
                 }
             }
+
+            if (body.stream) {
+                /* SSE streaming: deltas as `data: {ok, delta}` then `data: {ok, done}` */
+                res.writeHead(200, {
+                    'Content-Type': 'text/event-stream; charset=utf-8',
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive',
+                    'X-Accel-Buffering': 'no'
+                });
+                let aborted = false;
+                const abortRef = { fn: null };
+                const timer = setTimeout(() => {
+                    if (aborted || res.writableEnded) return;
+                    res.write('data: ' + JSON.stringify({ ok: false, error: 'AI request timed out on the server. Try again in a moment.' }) + '\n\n');
+                    res.end();
+                }, 80000);
+                const onClose = () => {
+                    aborted = true;
+                    clearTimeout(timer);
+                    if (abortRef.fn) { try { abortRef.fn(); } catch (e) {} }
+                };
+                res.on('close', onClose);
+                res.on('error', () => {});
+                const opts = { temperature: body.temperature, deadlineMs: 75000, abortRef };
+                forwardStream(messages, opts, {
+                    onDelta: (text) => {
+                        if (aborted || res.writableEnded) return;
+                        res.write('data: ' + JSON.stringify({ ok: true, delta: text }) + '\n\n');
+                    },
+                    onDone: (okRes) => {
+                        clearTimeout(timer);
+                        if (aborted || res.writableEnded) return;
+                        res.write('data: ' + JSON.stringify({
+                            ok: true,
+                            done: true,
+                            model: okRes.model,
+                            backend: okRes.backend
+                        }) + '\n\n');
+                        res.end();
+                    },
+                    onError: (err) => {
+                        clearTimeout(timer);
+                        if (aborted || res.writableEnded) return;
+                        if (!res.headersSent) { /* not reached: headers written above */ }
+                        res.write('data: ' + JSON.stringify({
+                            ok: false,
+                            error: err.message,
+                            backends: err.attempted || []
+                        }) + '\n\n');
+                        res.end();
+                    }
+                });
+                return;
+            }
+
             let aborted = false;
             const timer = setTimeout(() => {
                 if (aborted || res.writableEnded) return;

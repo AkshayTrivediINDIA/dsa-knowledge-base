@@ -14,6 +14,14 @@ var doubtHistory = [];
 var DOUBT_HISTORY_KEY = 'dsa_doubt_history';
 var DOUBT_URL_KEY = 'dsa_doubt_url';
 
+/* streaming cursor element appended to the live AI bubble while tokens arrive */
+function doubtCursor() {
+    var c = document.createElement('span');
+    c.className = 'doubt-cursor';
+    c.setAttribute('aria-hidden', 'true');
+    return c;
+}
+
 function doubtIsHttpOrigin() {
     try {
         var p = window.location.protocol;
@@ -168,6 +176,129 @@ function finishDoubt() {
     setDoubtBusy(false);
 }
 
+/* thrown when the proxy answered with plain JSON (no SSE) despite stream:true —
+   the caller falls back to the non-stream rendering path. */
+function DoubtStreamFallback(json) {
+    this.json = json;
+    this.message = 'non-streaming proxy response';
+}
+DoubtStreamFallback.prototype = Object.create(Error.prototype);
+DoubtStreamFallback.prototype.constructor = DoubtStreamFallback;
+
+/* ---------- SSE streaming read ----------
+   Reads the proxy's `data: {ok,delta}` events through the fetch body reader,
+   re-renders the AI bubble on every token and keeps a blinking cursor until the
+   final `data: {ok,done}` frame. Resolves with {ok:true,text} (or JSON on an
+   early error event). */
+function doubtStreamResponse(res) {
+    return new Promise(function (resolve, reject) {
+        if (!res.body || !res.body.getReader || typeof TextDecoder === 'undefined') {
+            res.text().then(function (raw) {
+                try { resolve(JSON.parse(raw)); }
+                catch (e) { reject(new Error('Server returned a non-JSON response.')); }
+            }).catch(reject);
+            return;
+        }
+
+        var reader = res.body.getReader();
+        var decoder = new TextDecoder('utf-8');
+        var buffer = '';
+        var full = '';
+        var bubble = null;
+        var list = $('#doubtMessages');
+        var raf = null;
+
+        function rerender() {
+            raf = null;
+            if (!bubble) return;
+            bubble.innerHTML = doubtRender(full) + doubtCursor().outerHTML;
+            if (list) list.scrollTop = list.scrollHeight;
+        }
+
+        function schedule() {
+            if (raf === null && typeof requestAnimationFrame === 'function') {
+                raf = requestAnimationFrame(rerender);
+            }
+        }
+
+        function handleFrame(data) {
+            if (!data || data === '[DONE]') return;
+            var j = null;
+            try { j = JSON.parse(data); } catch (e) { return; }
+            if (j && typeof j.delta === 'string') full += j.delta;
+            if (j && j.done) return;            /* streaming finished */
+            if (j && j.ok === false && j.error && full === '') {
+                var err = new Error(j.error);
+                err.doubtFail = true;
+                throw err;
+            }
+        }
+
+        function pump() {
+            return reader.read().then(function (r) {
+                if (r.done) {
+                    /* flush any trailing line with no newline */
+                    if (buffer.trim()) {
+                        try { handleFrame(buffer.trim()); } catch (e) { throw e; }
+                        buffer = '';
+                    }
+                    schedule();
+                    if (!full) {
+                        var e2 = new Error('Server returned an empty response.');
+                        e2.doubtFail = true;
+                        throw e2;
+                    }
+                    if (raf !== null) { cancelAnimationFrame(raf); raf = null; }
+                    var doneBubble = $('#doubtMessages');
+                    var live = bubble;
+                    if (live) {
+                        live.innerHTML = doubtRender(full);
+                        if (doneBubble) doneBubble.scrollTop = doneBubble.scrollHeight;
+                    }
+                    resolve({ ok: true, text: full, streamed: true });
+                    return;
+                }
+                buffer += decoder.decode(r.value, { stream: true });
+                var idx;
+                while ((idx = buffer.indexOf('\n')) !== -1) {
+                    var line = buffer.slice(0, idx);
+                    buffer = buffer.slice(idx + 1);
+                    var t = String(line).replace(/\r$/, '').trim();
+                    if (t.indexOf('data:') === 0) {
+                        try { handleFrame(t.slice(5).trim()); }
+                        catch (e) { reader.cancel(); throw e; }
+                    }
+                }
+                if (!bubble && full) {
+                    hideDoubtTyping();
+                    bubble = document.createElement('div');
+                    bubble.className = 'doubt-msg doubt-msg-ai doubt-msg-stream';
+                    if (list) list.appendChild(bubble);
+                    schedule();
+                }
+                return pump();
+            });
+        }
+
+        pump().catch(function (err) {
+            if (err && err.doubtFail) {
+                addDoubtMessage('ai', '<p class="doubt-error">' + doubtEscape(err.message) + '</p>');
+                finishDoubt();
+                err.silentDoubt = true;
+                reject(err);
+                return;
+            }
+            /* die silently mid-stream if we already showed tokens */
+            if (full) {
+                if (bubble) bubble.innerHTML = doubtRender(full);
+                resolve({ ok: true, text: full, streamed: true });
+                return;
+            }
+            reject(err);
+        });
+    });
+}
+
 function sendDoubt() {
     var ta = $('#doubtInput');
     if (!ta) return;
@@ -191,6 +322,7 @@ function sendDoubt() {
     showDoubtTyping();
 
     var payload = {
+        stream: true,
         messages: [
             { role: 'system', content: doubtContext() },
             { role: 'user', content: q }
@@ -231,10 +363,20 @@ function sendDoubt() {
             if (!res.ok) return readJson(res, false).then(function (j) {
                 throw new Error(j && j.error ? String(j.error) : 'Server error ' + res.status);
             });
-            return readJson(res, true);
+            var ctype = String((res.headers && res.headers.get) ? (res.headers.get('content-type') || '') : '');
+            if (ctype.indexOf('text/event-stream') === -1) return readJson(res, true).then(function (j) {
+                throw new DoubtStreamFallback(j);
+            });
+            return doubtStreamResponse(res);
         }).then(function (j) {
             clearTimeout(timer);
             if (j && j.ok && typeof j.text === 'string' && j.text) {
+                if (j.streamed) {
+                    finishDoubt();
+                    doubtHistory.push({ role: 'assistant', content: j.text });
+                    saveDoubtHistory();
+                    return;
+                }
                 addDoubtMessage('ai', doubtRender(j.text));
                 doubtHistory.push({ role: 'assistant', content: j.text });
                 saveDoubtHistory();
@@ -244,10 +386,22 @@ function sendDoubt() {
             finishDoubt();
         }, function (err) {
             clearTimeout(timer);
+            if (err && err.silentDoubt) return;   /* specific error bubble already shown */
+            if (err instanceof DoubtStreamFallback) {
+                var j = err.json;
+                if (j && j.ok && typeof j.text === 'string' && j.text) {
+                    addDoubtMessage('ai', doubtRender(j.text));
+                    doubtHistory.push({ role: 'assistant', content: j.text });
+                    saveDoubtHistory();
+                    finishDoubt();
+                    return;
+                }
+            }
             onFail((err && err.name === 'AbortError') ? 'The AI server took too long (100s). Try again.' :
                 (err && err.message ? err.message : 'Network error.'));
         }).catch(function (err) {
             clearTimeout(timer);
+            if (err && err.silentDoubt) return;
             onFail((err && err.name === 'AbortError') ? 'The AI server took too long (100s). Try again.' :
                 (err && err.message ? err.message : 'Network error.'));
         });
