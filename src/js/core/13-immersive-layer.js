@@ -588,57 +588,19 @@ function immEnsureCodeButton() {
 }
 
 /* ============================================================
-   Inline Visualizer toggle — "Visualize it" / "Code it"
-   The toggle is anchored to the viz mount (not the viewport):
-   in Code mode it floats over the CENTRE of the blurred viz;
-   in Visualize mode it drops just BELOW the viz, inside the
-   blurred page. The sidebar is NEVER blurred: it is excluded
-   from the imm-focus blur selectors and the overlay is offset
-   past the sidebar on desktop.
+   Inline Visualizer toggle — REMOVED.
+   The blur/dim overlay feature caused full-page unresponsiveness
+   on mobile (full-viewport blur compositing), so it is disabled
+   entirely. The Inline Visualizer mounts normally on code/*
+   pages without any page blur or focus overlay.
    ============================================================ */
 
 function immVizToggleInit() {
-    if (typeof document === 'undefined') return;
-    var viz = document.querySelector('#article .viz');
-    if (!viz || document.querySelector('.imm-viz-toggle')) return;
-    var wrap = document.createElement('div');
-    wrap.className = 'imm-viz-wrap';
-    viz.parentNode.insertBefore(wrap, viz);
-    wrap.appendChild(viz);
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'imm-viz-toggle';
-    btn.setAttribute('aria-pressed', 'false');
-    btn.textContent = 'Visualize it';
-    btn.addEventListener('click', function () {
-        var focused = document.body.classList.contains('imm-focus');
-        immVizSet(!focused, viz, btn);
-    });
-    wrap.appendChild(btn);
-    /* Default: Code mode — Inline Visualizer blurred, page normal. */
-    document.body.classList.add('viz-code');
+    return;
 }
 
-function immVizSet(on, mount, btn) {
-    if (typeof document === 'undefined') return;
-    var ov = immOverlay();
-    var g = VIZ_GSAP();
-    if (on) {
-        document.body.classList.remove('viz-code');
-        document.body.classList.add('imm-focus');
-        if (mount && ov) {
-            var r = mount.getBoundingClientRect();
-            ov.style.setProperty('--imm-cx', Math.round(r.left + r.width / 2) + 'px');
-            ov.style.setProperty('--imm-cy', Math.round(r.top + r.height / 2) + 'px');
-        }
-        if (ov) { if (g) g.to(ov, { opacity: 1, duration: immDur('normal'), ease: immEas('soft') }); else ov.style.opacity = '1'; }
-        if (btn) { btn.textContent = 'Code it'; btn.setAttribute('aria-pressed', 'true'); }
-    } else {
-        document.body.classList.add('viz-code');
-        document.body.classList.remove('imm-focus');
-        if (ov) { if (g) g.to(ov, { opacity: 0, duration: immDur('normal'), ease: immEas('soft') }); else ov.style.opacity = '0'; }
-        if (btn) { btn.textContent = 'Visualize it'; btn.setAttribute('aria-pressed', 'false'); }
-    }
+function immVizSet() {
+    return;
 }
 
 /* ============================================================
@@ -653,10 +615,7 @@ function immersiveExit() {
     try { immFocusOff(); } catch (e) {}
     try {
         if (typeof document !== 'undefined') document.body.classList.remove('viz-code');
-    } catch (e) {}
-    try {
-        var tgl = document.querySelector('.imm-viz-toggle');
-        if (tgl && tgl.parentNode) tgl.parentNode.removeChild(tgl);
+        if (typeof document !== 'undefined') document.body.classList.remove('imm-focus');
     } catch (e) {}
     try {
         var inst = immInst();
