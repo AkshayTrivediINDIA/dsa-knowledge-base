@@ -335,7 +335,7 @@ body {
 }
 .viz-canvas {
   display: block;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 /* tooltip */

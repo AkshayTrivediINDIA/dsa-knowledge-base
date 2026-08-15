@@ -47,6 +47,7 @@ export function CanvasViz() {
   const frame = useVizStore((s) => s.frames[s.index])
   const renderMode = useVizStore((s) => s.renderMode)
   const showTooltip = useVizStore((s) => s.showTooltip)
+  const playing = useVizStore((s) => s.playing)
   const dims = useRef<DrawOpts>({ width: 0, height: 0, dpr: 1 })
 
   /* previous frame keeps the last-known values for interpolation */
@@ -135,8 +136,6 @@ export function CanvasViz() {
       const { width, height, dpr } = dims.current
       if (width <= 0) { raf = requestAnimationFrame(draw); return }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-
-      /* interpolate values + heights between prev and current frame */
       const prev = prevFrame.current && prevFrame.current.step !== (frame?.step ?? -1) ? prevFrame.current : null
       const a = frameValues(prev)
       const b = frameValues(frame)
@@ -208,12 +207,15 @@ export function CanvasViz() {
         ctx.fillText(String(i), xCenter, base + 32)
       }
 
-      raf = requestAnimationFrame(draw)
+      /* keep animating only while playing or while an interpolation is
+         still in flight (t < 1). Once settled and paused, stop the rAF
+         loop entirely so an idle canvas doesn't burn CPU/GPU on mobile. */
+      if (playing || t < 1) raf = requestAnimationFrame(draw)
     }
 
     raf = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(raf)
-  }, [frame, renderMode])
+  }, [frame, renderMode, playing])
 
   const n = frame ? frame.values.length : 1
   void n
