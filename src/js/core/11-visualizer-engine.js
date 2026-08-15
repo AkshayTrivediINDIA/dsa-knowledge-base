@@ -846,8 +846,9 @@ function vizTeardownAll() {
 
 function vizInitForPage() {
     var path = currentPath;
-    var cfg = VIZ_CONFIG[path];
-    if (!cfg && path.indexOf('code/') === 0) cfg = VIZ_CONFIG[path.slice(5)];
+    /* Inline Visualizer mounts only inside View Code (code/*) pages. */
+    if (path.indexOf('code/') !== 0) return;
+    var cfg = VIZ_CONFIG[path.slice(5)];
     if (!cfg) return;
     var article = $('#article');
     if (!article) return;

@@ -2747,8 +2747,9 @@ function vizTeardownAll() {
 
 function vizInitForPage() {
     var path = currentPath;
-    var cfg = VIZ_CONFIG[path];
-    if (!cfg && path.indexOf('code/') === 0) cfg = VIZ_CONFIG[path.slice(5)];
+    /* Inline Visualizer mounts only inside View Code (code/*) pages. */
+    if (path.indexOf('code/') !== 0) return;
+    var cfg = VIZ_CONFIG[path.slice(5)];
     if (!cfg) return;
     var article = $('#article');
     if (!article) return;
@@ -3893,15 +3894,71 @@ function immEnsureCodeButton() {
 }
 
 /* ============================================================
+   Inline Visualizer toggle — "Visualize it" / "Code it"
+   A floating button (body-level, fixed bottom-right) switches
+   between Code mode (viz blurred, page normal) and Visualize
+   mode (viz glow, rest blurred). The sidebar is NEVER blurred:
+   it is excluded from the imm-focus blur selectors and the
+   overlay is offset past the sidebar on desktop.
+   ============================================================ */
+
+function immVizToggleInit() {
+    if (typeof document === 'undefined') return;
+    var mount = document.querySelector('#article .viz');
+    if (!mount || document.querySelector('.imm-viz-toggle')) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'imm-viz-toggle';
+    btn.setAttribute('aria-pressed', 'false');
+    btn.textContent = 'Visualize it';
+    btn.addEventListener('click', function () {
+        var focused = document.body.classList.contains('imm-focus');
+        immVizSet(!focused, mount, btn);
+    });
+    document.body.appendChild(btn);
+    /* Default: Code mode — Inline Visualizer blurred, page normal. */
+    document.body.classList.add('viz-code');
+}
+
+function immVizSet(on, mount, btn) {
+    if (typeof document === 'undefined') return;
+    var ov = document.getElementById('imm-focus-overlay');
+    var g = VIZ_GSAP();
+    if (on) {
+        document.body.classList.remove('viz-code');
+        document.body.classList.add('imm-focus');
+        if (mount && ov) {
+            var r = mount.getBoundingClientRect();
+            ov.style.setProperty('--imm-cx', Math.round(r.left + r.width / 2) + 'px');
+            ov.style.setProperty('--imm-cy', Math.round(r.top + r.height / 2) + 'px');
+        }
+        if (ov) { if (g) g.to(ov, { opacity: 1, duration: immDur('normal'), ease: immEas('soft') }); else ov.style.opacity = '1'; }
+        if (btn) { btn.textContent = 'Code it'; btn.setAttribute('aria-pressed', 'true'); }
+    } else {
+        document.body.classList.add('viz-code');
+        document.body.classList.remove('imm-focus');
+        if (ov) { if (g) g.to(ov, { opacity: 0, duration: immDur('normal'), ease: immEas('soft') }); else ov.style.opacity = '0'; }
+        if (btn) { btn.textContent = 'Visualize it'; btn.setAttribute('aria-pressed', 'false'); }
+    }
+}
+
+/* ============================================================
    Entry / exit hooks — wired into 07-router renderPage flow
    ============================================================ */
 
 function immersiveEnter() {
-    immObserve();
+    immVizToggleInit();
 }
 
 function immersiveExit() {
     try { immFocusOff(); } catch (e) {}
+    try {
+        if (typeof document !== 'undefined') document.body.classList.remove('viz-code');
+    } catch (e) {}
+    try {
+        var tgl = document.querySelector('.imm-viz-toggle');
+        if (tgl && tgl.parentNode) tgl.parentNode.removeChild(tgl);
+    } catch (e) {}
     try {
         var inst = immInst();
         if (inst.obs) { inst.obs.disconnect(); inst.obs = null; }

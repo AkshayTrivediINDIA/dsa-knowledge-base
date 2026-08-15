@@ -2693,12 +2693,13 @@ body {
    opacity; reduced-motion shuts the whole layer off.
    ============================================ */
 
-/* dim + blur the page behind a radial vignette centred on stage */
+/* dim + blur the page behind a radial vignette centred on stage.
+   The sidebar is NEVER blurred — it is excluded here and the
+   overlay is offset past the sidebar width on desktop. */
 .imm-focus-overlay-holder {
     display: none;
 }
 
-body.imm-focus .sidebar,
 body.imm-focus .content-header,
 body.imm-focus .article-footer {
     filter: blur(2px);
@@ -2713,19 +2714,31 @@ body.imm-focus .content {
 #article .viz {
     position: relative;
     z-index: 2;
-    transition: box-shadow 0.4s ease;
+    transition: box-shadow 0.4s ease, filter 0.4s ease, opacity 0.4s ease;
 }
 
 body.imm-focus #article .viz {
     box-shadow:
         0 0 0 1px var(--accent-primary),
         0 0 32px 2px var(--accent-primary);
+    filter: none;
+    opacity: 1;
     z-index: 20;
+}
+
+/* Code mode (default): Inline Visualizer blurred + dimmed so the
+   reader focuses on the code; the "Visualize it" button un-blurs it. */
+body.viz-code #article .viz {
+    filter: blur(3px) saturate(0.4);
+    opacity: 0.55;
+    z-index: 2;
+    box-shadow: none;
 }
 
 #imm-focus-overlay {
     position: fixed;
     inset: 0;
+    left: var(--sidebar-width);
     z-index: 10;
     background: radial-gradient(
         ellipse at var(--imm-cx, 50%) var(--imm-cy, 50%),
@@ -2749,6 +2762,52 @@ body.imm-focus #article .viz {
         rgba(0, 0, 0, 0.55) 74%,
         rgba(0, 0, 0, 0.75) 100%
     );
+}
+
+@media (max-width: 768px) {
+    /* On mobile the sidebar is off-canvas, so the overlay may span
+       the full width again. When the sidebar is open its z-index (90)
+       sits above the overlay (10), so it stays crisp regardless. */
+    #imm-focus-overlay {
+        left: 0;
+    }
+}
+
+/* ---- Inline Visualizer floating toggle ("Visualize it" / "Code it") ---- */
+
+.imm-viz-toggle {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 30;
+    padding: 10px 18px;
+    border-radius: 999px;
+    border: 1px solid var(--accent-primary);
+    background: var(--bg-elevated, #ffffff);
+    color: var(--accent-primary);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: var(--shadow-md, 0 4px 14px rgba(0, 0, 0, 0.16));
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.imm-viz-toggle:hover {
+    background: var(--accent-primary);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+body.imm-focus .imm-viz-toggle {
+    background: var(--accent-primary);
+    color: #fff;
+}
+
+@media print {
+    .imm-viz-toggle {
+        display: none !important;
+    }
 }
 
 /* ---- ambient living background (CSS @keyframes only) ---- */
@@ -2893,7 +2952,6 @@ body.imm-focus #article .viz {
     .imm-beam, .imm-ring, .imm-particle, .imm-tick { display: none; }
     #imm-focus-overlay { display: none; }
     .imm-ambient-layer { display: none; }
-    body.imm-focus .sidebar,
     body.imm-focus .content-header,
     body.imm-focus .article-footer { filter: none; }
     @keyframes immDrift { 0%, 100% { background-position: 0% 0%, 100% 100%; } }
