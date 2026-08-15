@@ -589,17 +589,22 @@ function immEnsureCodeButton() {
 
 /* ============================================================
    Inline Visualizer toggle — "Visualize it" / "Code it"
-   A floating button (body-level, fixed bottom-right) switches
-   between Code mode (viz blurred, page normal) and Visualize
-   mode (viz glow, rest blurred). The sidebar is NEVER blurred:
-   it is excluded from the imm-focus blur selectors and the
-   overlay is offset past the sidebar on desktop.
+   The toggle is anchored to the viz mount (not the viewport):
+   in Code mode it floats over the CENTRE of the blurred viz;
+   in Visualize mode it drops just BELOW the viz, inside the
+   blurred page. The sidebar is NEVER blurred: it is excluded
+   from the imm-focus blur selectors and the overlay is offset
+   past the sidebar on desktop.
    ============================================================ */
 
 function immVizToggleInit() {
     if (typeof document === 'undefined') return;
-    var mount = document.querySelector('#article .viz');
-    if (!mount || document.querySelector('.imm-viz-toggle')) return;
+    var viz = document.querySelector('#article .viz');
+    if (!viz || document.querySelector('.imm-viz-toggle')) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'imm-viz-wrap';
+    viz.parentNode.insertBefore(wrap, viz);
+    wrap.appendChild(viz);
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'imm-viz-toggle';
@@ -607,16 +612,16 @@ function immVizToggleInit() {
     btn.textContent = 'Visualize it';
     btn.addEventListener('click', function () {
         var focused = document.body.classList.contains('imm-focus');
-        immVizSet(!focused, mount, btn);
+        immVizSet(!focused, viz, btn);
     });
-    document.body.appendChild(btn);
+    wrap.appendChild(btn);
     /* Default: Code mode — Inline Visualizer blurred, page normal. */
     document.body.classList.add('viz-code');
 }
 
 function immVizSet(on, mount, btn) {
     if (typeof document === 'undefined') return;
-    var ov = document.getElementById('imm-focus-overlay');
+    var ov = immOverlay();
     var g = VIZ_GSAP();
     if (on) {
         document.body.classList.remove('viz-code');
