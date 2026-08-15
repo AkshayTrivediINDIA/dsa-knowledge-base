@@ -2273,7 +2273,9 @@ body {
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-md);
     overflow: hidden;
-    touch-action: none;
+    /* Allow vertical page panning so a swipe over the viz scrolls the
+       page on mobile; only horizontal drags are claimed by the viz. */
+    touch-action: pan-y;
     user-select: none;
     -webkit-user-select: none;
 }
@@ -2293,7 +2295,6 @@ body {
     color: var(--text-primary);
     font-family: var(--font-mono);
     box-shadow: var(--shadow-sm);
-    will-change: transform;
     z-index: 1;
 }
 
@@ -2340,7 +2341,6 @@ body {
     font-family: var(--font-mono);
     font-size: 12px;
     font-weight: 600;
-    will-change: transform;
     pointer-events: none;
 }
 
@@ -2367,7 +2367,6 @@ body {
     border: 2px solid var(--accent-primary);
     background: var(--viz-soft);
     border-radius: var(--radius-md);
-    will-change: transform;
     pointer-events: none;
 }
 
@@ -2392,7 +2391,6 @@ body {
     background: var(--accent-primary);
     border-radius: 3px 3px 0 0;
     z-index: 1;
-    will-change: transform;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2524,7 +2522,6 @@ body {
     font-family: var(--font-mono);
     font-size: 12px;
     color: var(--text-secondary);
-    will-change: transform;
 }
 
 .viz-var b {
