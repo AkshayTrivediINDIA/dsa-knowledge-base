@@ -25,12 +25,12 @@ interface HoverInfo {
 }
 
 const STATUS_COLORS: Record<ElementStatus, string> = {
-  idle: '#3a4560',
-  active: '#00e5ff',
-  comparing: '#ffb74d',
-  swapping: '#ff5c8a',
-  sorted: '#37e39c',
-  found: '#8b9cf7',
+  idle: '#2e3a52',
+  active: '#4ba3ff',
+  comparing: '#d7ba7d',
+  swapping: '#f48771',
+  sorted: '#4ec9b0',
+  found: '#c586c0',
 }
 
 const STATUS_LABELS: Record<ElementStatus, string> = {
@@ -193,7 +193,7 @@ export function CanvasViz() {
       const idx = frame ? frame.i : -1
       if (frame && idx >= 0 && current!.phase !== 'done') {
         const xCenter = idx * slot + slot / 2
-        drawPointer(ctx, xCenter, height - 18, '#00e5ff')
+        drawPointer(ctx, xCenter, height - 18, '#4ba3ff')
       }
 
       /* value + index labels per element */

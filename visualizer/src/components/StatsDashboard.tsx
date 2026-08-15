@@ -45,7 +45,7 @@ export function StatsDashboard() {
     }
 
     // actual operations so far (linear — traversal)
-    ctx.strokeStyle = '#ff5c8a'
+    ctx.strokeStyle = '#4ec9b0'
     ctx.lineWidth = 1.8
     ctx.beginPath()
     const curve: Array<[number, number]> = []
@@ -61,13 +61,13 @@ export function StatsDashboard() {
     const progress = frame ? frame.step : 0
     const cx = pad + (progress / Math.max(1, 40)) * (W - pad * 2)
     const cy = py(Math.min(progress + 1, n))
-    ctx.fillStyle = '#ff5c8a'
+    ctx.fillStyle = '#4ec9b0'
     ctx.beginPath()
     ctx.arc(cx, cy, 2.6, 0, Math.PI * 2)
     ctx.fill()
 
     // O(1) reference band at bottom
-    ctx.strokeStyle = 'rgba(0,229,255,0.35)'
+    ctx.strokeStyle = 'rgba(75,163,255,0.4)'
     ctx.setLineDash([3, 3])
     ctx.beginPath()
     ctx.moveTo(pad, H - pad)
