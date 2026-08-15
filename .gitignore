@@ -4,3 +4,5 @@ node_modules/
 Thumbs.db
 *.tmp
 server-config.json
+visualizer/node_modules/
+visualizer/dist/
