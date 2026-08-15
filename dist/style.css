@@ -2707,6 +2707,15 @@ body.imm-focus .article-footer {
     transition: filter 0.4s ease;
 }
 
+/* Rest-of-page blur is done per-element (cheap), never with a
+   full-viewport backdrop-filter (that hangs mobile browsers).
+   The viz mount + its toggle (.imm-viz-wrap) stay crisp. */
+body.imm-focus #article > :not(.imm-viz-wrap) {
+    filter: blur(2px);
+    pointer-events: none;
+    transition: filter 0.4s ease;
+}
+
 body.imm-focus .content {
     --imm-overlay: rgba(0, 0, 0, 0.35);
 }
@@ -2749,9 +2758,6 @@ body.viz-code #article .viz {
     );
     opacity: 0;
     pointer-events: none;
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
-    will-change: opacity;
 }
 
 [data-theme="dark"] #imm-focus-overlay {
@@ -2970,7 +2976,8 @@ body.imm-focus .imm-viz-wrap .imm-viz-toggle {
     #imm-focus-overlay { display: none; }
     .imm-ambient-layer { display: none; }
     body.imm-focus .content-header,
-    body.imm-focus .article-footer { filter: none; }
+    body.imm-focus .article-footer,
+    body.imm-focus #article > :not(.imm-viz-wrap) { filter: none; }
     @keyframes immDrift { 0%, 100% { background-position: 0% 0%, 100% 100%; } }
 }
 
