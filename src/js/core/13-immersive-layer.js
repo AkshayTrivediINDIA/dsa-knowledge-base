@@ -486,50 +486,64 @@ function immWrapCodeLines(pre) {
     var code = (pre && pre.querySelector) ? pre.querySelector('code') : null;
     if (!code || code.querySelector('.code-line')) return;
     var frag = document.createDocumentFragment();
-    var line = document.createElement('span');
-    line.className = 'code-line';
-    frag.appendChild(line);
 
-    function newLine() {
-        line = document.createElement('span');
-        line.className = 'code-line';
-        frag.appendChild(line);
-        return line;
-    }
-
-    /* Walk the highlighted <code> children; split text on newlines and
-       keep the hl-* highlight spans intact inside each .code-line. */
-    var stack = [code];
-    while (stack.length) {
-        var node = stack.shift();
-        if (node.nodeType === 3) {                       /* text */
-            var parts = String(node.nodeValue).split('\n');
-            for (var p = 0; p < parts.length; p++) {
-                if (parts[p] !== '') line.appendChild(document.createTextNode(parts[p]));
-                if (p < parts.length - 1) newLine();
-            }
-            continue;
-        }
-        if (node.nodeType !== 1) continue;               /* comments etc. */
-        var tag = node.nodeName.toLowerCase();
-        if (tag === 'code') {
-            for (var c = 0; c < node.childNodes.length; c++) stack.push(node.childNodes[c]);
-            continue;
-        }
-        /* highlight span -> re-create inside the current code-line */
-        var el = document.createElement(tag);
+    function cloneEl(node) {
+        var el = document.createElement(node.nodeName);
         if (node.getAttribute) {
             var atts = node.attributes || [];
             for (var a = 0; a < atts.length; a++) el.setAttribute(atts[a].nodeName, atts[a].nodeValue);
         }
-        line.appendChild(el);
-        stack.push(el);
-        /* re-queue the *text* children of the highlight span so newlines
-           inside (e.g. multi-line comments) still split lines */
-        var kids = [];
-        for (var k = 0; k < node.childNodes.length; k++) kids.push(node.childNodes[k]);
-        kids.forEach(function (k2) { stack.push(k2); });
+        return el;
     }
+
+    /* Flatten the highlighted <code> tree into document-ordered segments,
+       each either plain text or one hl-* span (the highlighter emits flat,
+       non-nested spans). This avoids the old unbounded stack walk. */
+    var segments = [];
+    (function collect(node) {
+        if (!node) return;
+        if (node.nodeType === 3) { segments.push({ text: node.nodeValue }); return; }
+        if (node.nodeType !== 1) return;
+        var tag = node.nodeName.toLowerCase();
+        if (tag === 'code') {
+            for (var c = 0; c < node.childNodes.length; c++) collect(node.childNodes[c]);
+            return;
+        }
+        segments.push({ span: node, text: node.textContent || '' });
+    })(code);
+
+    /* Split the segment stream into visual lines; a multi-line token (e.g.
+       a block comment) gets its span cloned once per line it spans. */
+    var linesOut = [];
+    var cur = [];
+    linesOut.push(cur);
+    segments.forEach(function (seg) {
+        var text = String(seg.text || '');
+        var parts = text.split('\n');
+        for (var p = 0; p < parts.length; p++) {
+            if (parts[p] !== '') {
+                if (seg.span) cur.push({ span: seg.span, text: parts[p] });
+                else cur.push({ text: parts[p] });
+            }
+            if (p < parts.length - 1) { cur = []; linesOut.push(cur); }
+        }
+    });
+
+    /* Render each line as a .code-line span, keeping hl-* classes. */
+    linesOut.forEach(function (pieces) {
+        var line = document.createElement('span');
+        line.className = 'code-line';
+        frag.appendChild(line);
+        pieces.forEach(function (piece) {
+            if (piece.span) {
+                var el = cloneEl(piece.span);
+                el.appendChild(document.createTextNode(piece.text));
+                line.appendChild(el);
+            } else {
+                line.appendChild(document.createTextNode(piece.text));
+            }
+        });
+    });
 
     code.innerHTML = '';
     code.appendChild(frag);
