@@ -285,3 +285,28 @@ console.log('Generated ' + unique.length + ' HTML pages');
     }
     console.log('Built dist/index.standalone.html (' + Math.round(standalone.length / 1024) + ' KB)');
 })();
+
+/* ---------- 8. Visualizer Studio (React app) ----------
+   Copies the built visualizer/dist into dist/viz/ so server.js serves
+   it at /viz/ with no code changes. Skipped silently if the visualizer
+   hasn't been built (the repo still carries whatever was last built). */
+(function copyVisualizer() {
+    const VIZ_SRC = path.join(ROOT, 'visualizer', 'dist');
+    const VIZ_DST = path.join(DIST, 'viz');
+    if (!fs.existsSync(path.join(VIZ_SRC, 'index.html'))) {
+        console.log('Visualizer: skipped (visualizer/dist not built)');
+        return;
+    }
+    function copyDir(from, to) {
+        fs.mkdirSync(to, { recursive: true });
+        fs.readdirSync(from).forEach((ent) => {
+            const s = path.join(from, ent);
+            const d = path.join(to, ent);
+            if (fs.statSync(s).isDirectory()) copyDir(s, d);
+            else fs.copyFileSync(s, d);
+        });
+    }
+    if (fs.existsSync(VIZ_DST)) fs.rmSync(VIZ_DST, { recursive: true, force: true });
+    copyDir(VIZ_SRC, VIZ_DST);
+    console.log('Built dist/viz/ (Visualizer Studio, ' + Math.round(fs.readdirSync(VIZ_DST).length) + ' entries)');
+})();

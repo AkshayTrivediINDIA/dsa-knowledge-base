@@ -46,12 +46,13 @@
          api.airforce — https://api.airforce/v1/chat/completions
 
    Routes:
-       GET  /api/config        { configured, model, endpoints, active }  (never leaks keys)
-       GET  /api/ask           health check
-       POST /api/ask           { messages, temperature? } -> { ok, text, model, backend }
-                                (+ stream:true -> SSE: {ok,delta}.. {ok,done} / {ok,false,error})
-       anything else           serves files from STATIC_DIR
-   ============================================================ */
+        GET  /api/config        { configured, model, endpoints, active }  (never leaks keys)
+        GET  /api/ask           health check
+        POST /api/ask           { messages, temperature? } -> { ok, text, model, backend }
+                                 (+ stream:true -> SSE: {ok,delta}.. {ok,done} / {ok,false,error})
+        /viz  or  /viz/         301 redirect -> /viz/index.html (Visualizer Studio)
+        anything else           serves files from STATIC_DIR
+    ============================================================ */
 
 'use strict';
 
@@ -764,6 +765,12 @@ const server = http.createServer((req, res) => {
 
     if (req.method !== 'GET' && req.method !== 'HEAD') {
         send(res, 404, { ok: false, error: 'Not found' });
+        return;
+    }
+
+    if (url === '/viz' || url === '/viz/') {
+        res.writeHead(301, { Location: '/viz/index.html' });
+        res.end();
         return;
     }
 

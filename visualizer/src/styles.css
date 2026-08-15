@@ -75,6 +75,22 @@ body {
   z-index: 5;
 }
 .brand { display: flex; align-items: center; gap: 12px; }
+.brand-back {
+  flex: 0 0 auto;
+  width: 36px; height: 36px;
+  display: grid; place-items: center;
+  font-size: 18px; line-height: 1;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  color: var(--text-2);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.brand-back:hover {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  transform: translateX(-2px);
+}
 .brand-mark {
   width: 44px; height: 44px;
   display: grid; place-items: center;

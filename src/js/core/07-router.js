@@ -208,6 +208,17 @@ function renderComingSoon(dsId) {
 
 /* ---------- Page Renderer (with transition) ---------- */
 
+/* Pages that get a "Visualizer Studio" launch button — maps a DB path
+   to the studio's algorithm label. The button deep-links to /viz/ so
+   the full-screen React visualizer can run the same algorithm. */
+var VIZ_STUDIO_LINKS = {
+    'topics/traversal': 'Array Traversal',
+    'topics/prefix-sum': 'Prefix Sum',
+    'topics/sliding-window': 'Sliding Window',
+    'topics/kadane': 'Kadane Algorithm',
+    'topics/sorting': 'Sorting'
+};
+
 function renderPage(path) {
     var page = DB[path];
     if (!page) { renderHome(); return; }
@@ -221,6 +232,7 @@ function renderPage(path) {
     safe(initScrollReveal);
     safe(vizInitForPage);
     safe(immersiveEnter);
+    if (VIZ_STUDIO_LINKS[path]) injectVizStudioCta(VIZ_STUDIO_LINKS[path]);
     renderBreadcrumb(page.crumbs || ['Home', page.title]);
     updateNavActive(path);
     expandToCurrent();
@@ -230,6 +242,32 @@ function renderPage(path) {
 }
 
 /* ---------- Breadcrumb & Nav ---------- */
+
+/* Injects a "Visualizer Studio" launch button into the article. Uses a
+   relative href so it also works from the file:// standalone, and only
+   links to /viz/ when served over http(s) (location.protocol). */
+function injectVizStudioCta(label) {
+    var article = $('#article');
+    if (!article || article.querySelector('.viz-studio-cta')) return;
+    var rel = (location.protocol === 'http:' || location.protocol === 'https:') ? '/viz/' : 'visualizer/dist/index.html';
+    var a = document.createElement('a');
+    a.className = 'viz-studio-cta';
+    a.href = rel;
+    a.innerHTML =
+        '<span class="viz-studio-cta-icon">' +
+            '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+                '<polygon points="5 3 19 12 5 21 5 3"></polygon>' +
+            '</svg>' +
+        '</span>' +
+        '<span class="viz-studio-cta-body">' +
+            '<strong>Open Visualizer Studio</strong>' +
+            '<small>' + escapeHtml(label) + ' — full-screen, interactive</small>' +
+        '</span>' +
+        '<span class="viz-studio-cta-arrow">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>' +
+        '</span>';
+    article.insertBefore(a, article.firstChild);
+}
 
 function renderBreadcrumb(crumbs) {
     $('#breadcrumb').innerHTML = crumbs.map(function (c, i) {

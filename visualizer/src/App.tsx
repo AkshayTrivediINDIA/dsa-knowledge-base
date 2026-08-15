@@ -18,6 +18,8 @@ const SPEED_CYCLE: SpeedMultiplier[] = [0.25, 0.5, 0.75, 1, 1.5, 2, 3]
 export default function App() {
   const dark = useVizStore((s) => s.dark)
 
+  const inSite = typeof window !== 'undefined' && /\/viz\/?$/.test(window.location.pathname)
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
   }, [dark])
@@ -72,6 +74,9 @@ export default function App() {
     <div className="app-shell">
       <header className="topbar">
         <div className="brand">
+          {inSite && (
+            <a className="brand-back" href="../" title="Back to DSA Knowledge Base">←</a>
+          )}
           <div className="brand-mark">◈</div>
           <div className="brand-text">
             <h1>DSA Visualizer Studio</h1>
