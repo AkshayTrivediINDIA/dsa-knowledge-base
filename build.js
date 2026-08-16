@@ -121,6 +121,13 @@ const ARRAY_NAV = {
     'topics/dutch-national-flag': 'Dutch National Flag',
     'topics/binary-search-answer': 'Binary Search on Answer',
     'topics/complexity': 'Complexity Analysis',
+    'topics/suffix-sum': 'Suffix Sum',
+    'topics/circular-array': 'Circular Array',
+    'topics/cyclic-sort': 'Cyclic Sort',
+    'topics/monotonic-stack': 'Monotonic Stack',
+    'topics/quick-select': 'Quick Select',
+    'topics/inversion-count': 'Inversion Count',
+    'topics/fast-slow-pointers': 'Fast & Slow Pointers',
     'interview/easy': 'Easy',
     'interview/medium': 'Medium',
     'interview/hard': 'Hard',
@@ -144,7 +151,10 @@ const ARRAY_SECTIONS = [
         'topics/sliding-window', 'topics/two-pointers', 'topics/kadane',
         'topics/sorting', 'topics/binary-search', 'topics/hashing',
         'topics/matrix', 'topics/merge-intervals', 'topics/dutch-national-flag',
-        'topics/binary-search-answer', 'topics/complexity'
+        'topics/binary-search-answer', 'topics/complexity',
+        'topics/suffix-sum', 'topics/circular-array', 'topics/cyclic-sort',
+        'topics/monotonic-stack', 'topics/quick-select', 'topics/inversion-count',
+        'topics/fast-slow-pointers'
     ] },
     { title: 'Interview Questions', paths: [
         'interview/easy', 'interview/medium', 'interview/hard',
