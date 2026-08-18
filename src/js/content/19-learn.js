@@ -57,7 +57,7 @@ DB["learn/getting-started"] = {
         '1. [Two Pointers](topics/two-pointers)',
         '2. [Sliding Window](topics/sliding-window)',
         '3. [Kadane](topics/kadane)',
-        '4. [Sorting](topics/sorting)',
+        '4. [Sorting](topics/bubble-sort)',
         '',
         '**Week 3 — Search & Grouping**',
         '',

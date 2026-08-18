@@ -12,10 +12,10 @@ var DB = {};
 var DS_CARDS = [
     {
         id: 'array', title: 'Array',
-        desc: 'Memory layout, traversal, prefix sums, binary search, sorting, hashing, and 16 interview problems with 5-language solutions.',
+        desc: 'Memory layout, traversal, prefix sums, 12 sorting algorithms, 7 search algorithms, hashing, and 16 interview problems with 5-language solutions.',
         icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="8" height="8" rx="1.5"/><rect x="14" y="2" width="8" height="8" rx="1.5"/><rect x="2" y="14" width="8" height="8" rx="1.5"/><rect x="14" y="14" width="8" height="8" rx="1.5"/></svg>',
         color: '#0969da', colorVar: 'var(--accent-primary)',
-        status: 'active', topics: 14, problems: 16,
+        status: 'active', topics: 39, problems: 16,
         path: 'research/array',
         expectedTopics: []
     },
@@ -157,8 +157,8 @@ var HOME_CARDS = [
     { path: 'topics/sliding-window', title: 'Sliding Window', desc: 'Fixed and variable windows for contiguous subarray constraints.' },
     { path: 'topics/two-pointers', title: 'Two Pointers', desc: 'Opposite-end and same-direction pointers to beat nested loops.' },
     { path: 'topics/kadane', title: 'Kadane', desc: 'Maximum subarray sum in O(n) time, O(1) space.' },
-    { path: 'topics/sorting', title: 'Sorting', desc: 'Library sorts, comparators, and when to pick counting/radix.' },
-    { path: 'topics/binary-search', title: 'Binary Search', desc: 'Classic search, lower/upper bounds, and the lo/hi invariant.' },
+    { path: 'topics/bubble-sort', title: 'Sorting Algorithms', desc: '12 sorting algorithms: bubble, selection, insertion, merge, quick, heap, counting, radix, bucket, shell, tim, and cycle sort.' },
+    { path: 'topics/binary-search', title: 'Search Algorithms', desc: '7 search algorithms: binary, linear, ternary, jump, interpolation, exponential, and fibonacci search.' },
     { path: 'topics/hashing', title: 'Hashing', desc: 'Frequency arrays and hashmaps for membership and counting.' },
     { path: 'topics/matrix', title: 'Matrix / 2D Array', desc: 'Neighbor traversal, transpose, rotation and spiral recipes.' },
     { path: 'topics/merge-intervals', title: 'Merge Intervals', desc: 'Sort + sweep for merging, inserting and intersecting intervals.' },

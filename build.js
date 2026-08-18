@@ -108,13 +108,32 @@ const ARRAY_NAV = {
     'research/index': 'Introduction',
     'research/array': 'Array Notes',
     'topics/traversal': 'Traversal',
+    'topics/forward-sum': 'Forward Sum',
+    'topics/suffix-max': 'Suffix Max',
     'topics/prefix-sum': 'Prefix Sum',
     'topics/difference-array': 'Difference Array',
     'topics/sliding-window': 'Sliding Window',
     'topics/two-pointers': 'Two Pointers',
     'topics/kadane': 'Kadane Algorithm',
-    'topics/sorting': 'Sorting',
+    'topics/bubble-sort': 'Bubble Sort',
+    'topics/selection-sort': 'Selection Sort',
+    'topics/insertion-sort': 'Insertion Sort',
+    'topics/merge-sort': 'Merge Sort',
+    'topics/quick-sort': 'Quick Sort',
+    'topics/heap-sort': 'Heap Sort',
+    'topics/counting-sort': 'Counting Sort',
+    'topics/radix-sort': 'Radix Sort',
+    'topics/bucket-sort': 'Bucket Sort',
+    'topics/shell-sort': 'Shell Sort',
+    'topics/tim-sort': 'Tim Sort',
+    'topics/cycle-sort': 'Cycle Sort',
     'topics/binary-search': 'Binary Search',
+    'topics/linear-search': 'Linear Search',
+    'topics/ternary-search': 'Ternary Search',
+    'topics/jump-search': 'Jump Search',
+    'topics/interpolation-search': 'Interpolation Search',
+    'topics/exponential-search': 'Exponential Search',
+    'topics/fibonacci-search': 'Fibonacci Search',
     'topics/hashing': 'Hashing',
     'topics/matrix': 'Matrix / 2D Array',
     'topics/merge-intervals': 'Merge Intervals',
@@ -146,15 +165,28 @@ const ARRAY_NAV = {
 
 const ARRAY_SECTIONS = [
     { title: 'Research', paths: ['research/index', 'research/array'] },
-    { title: 'DSA & DAA Topics', paths: [
-        'topics/traversal', 'topics/prefix-sum', 'topics/difference-array',
-        'topics/sliding-window', 'topics/two-pointers', 'topics/kadane',
-        'topics/sorting', 'topics/binary-search', 'topics/hashing',
-        'topics/matrix', 'topics/merge-intervals', 'topics/dutch-national-flag',
-        'topics/binary-search-answer', 'topics/complexity',
-        'topics/suffix-sum', 'topics/circular-array', 'topics/cyclic-sort',
-        'topics/monotonic-stack', 'topics/quick-select', 'topics/inversion-count',
-        'topics/fast-slow-pointers'
+    { title: 'Basic Operations', paths: [
+        'topics/traversal', 'topics/forward-sum', 'topics/suffix-max',
+        'topics/prefix-sum', 'topics/difference-array',
+        'topics/sliding-window', 'topics/two-pointers', 'topics/kadane'
+    ] },
+    { title: 'Sorting Algorithms', paths: [
+        'topics/bubble-sort', 'topics/selection-sort', 'topics/insertion-sort',
+        'topics/merge-sort', 'topics/quick-sort', 'topics/heap-sort',
+        'topics/counting-sort', 'topics/radix-sort', 'topics/bucket-sort',
+        'topics/shell-sort', 'topics/tim-sort', 'topics/cycle-sort'
+    ] },
+    { title: 'Search Algorithms', paths: [
+        'topics/binary-search', 'topics/linear-search', 'topics/ternary-search',
+        'topics/jump-search', 'topics/interpolation-search',
+        'topics/exponential-search', 'topics/fibonacci-search'
+    ] },
+    { title: 'Advanced Topics', paths: [
+        'topics/hashing', 'topics/matrix', 'topics/merge-intervals',
+        'topics/dutch-national-flag', 'topics/binary-search-answer',
+        'topics/complexity', 'topics/suffix-sum', 'topics/circular-array',
+        'topics/cyclic-sort', 'topics/monotonic-stack', 'topics/quick-select',
+        'topics/inversion-count', 'topics/fast-slow-pointers'
     ] },
     { title: 'Interview Questions', paths: [
         'interview/easy', 'interview/medium', 'interview/hard',
